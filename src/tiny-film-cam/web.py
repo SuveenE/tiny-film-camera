@@ -1,12 +1,10 @@
 from __future__ import annotations
 
 import argparse
-import io
 import json
 import mimetypes
 import shutil
 import socket
-import zipfile
 from email.utils import formatdate
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -83,6 +81,7 @@ def build_capture_image_list(project_root: Path) -> list[dict[str, object]]:
             {
                 "filename": image_path.name,
                 "relative_path": relative_path,
+                "view_url": f"/image/captures/{quote(relative_path)}",
                 "download_url": f"/download/captures/{quote(relative_path)}",
                 "modified_unix": stat.st_mtime,
                 "size_bytes": stat.st_size,
@@ -98,6 +97,7 @@ def build_capture_image(project_root: Path, image_path: Path) -> dict[str, objec
     return {
         "filename": image_path.name,
         "relative_path": relative_path,
+        "view_url": f"/image/captures/{quote(relative_path)}",
         "download_url": f"/download/captures/{quote(relative_path)}",
         "modified_unix": stat.st_mtime,
         "size_bytes": stat.st_size,
@@ -113,15 +113,6 @@ def capture_from_web(project_root: Path) -> dict[str, object]:
             "Capture was saved outside the configured captures directory"
         ) from exc
     return build_capture_image(project_root, output_path)
-
-
-def build_captures_zip(project_root: Path) -> bytes:
-    root = captures_root(project_root)
-    output = io.BytesIO()
-    with zipfile.ZipFile(output, mode="w", compression=zipfile.ZIP_DEFLATED) as archive:
-        for image_path in iter_capture_images(project_root):
-            archive.write(image_path, image_path.relative_to(root).as_posix())
-    return output.getvalue()
 
 
 def format_bytes(value: int) -> str:
@@ -236,14 +227,6 @@ def render_page() -> bytes:
             padding: 42px 16px;
             text-align: center;
           }
-          .row {
-            display: grid;
-            grid-template-columns: minmax(0, 1fr) auto;
-            gap: 16px;
-            align-items: center;
-            padding: 14px 0;
-            border-bottom: 1px solid var(--line);
-          }
           .name {
             overflow-wrap: anywhere;
             font-size: 15px;
@@ -287,6 +270,81 @@ def render_page() -> bytes:
             flex-wrap: wrap;
             justify-content: flex-end;
           }
+          .section-heading {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 14px;
+          }
+          .capture-browser {
+            display: grid;
+            gap: 12px;
+          }
+          .capture-stage {
+            min-height: 260px;
+            border: 1px solid var(--line);
+            background: #fff;
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr) auto;
+            align-items: center;
+            overflow: hidden;
+          }
+          .capture-stage img {
+            display: block;
+            width: 100%;
+            max-height: 62vh;
+            object-fit: contain;
+          }
+          .capture-info {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 12px;
+            align-items: center;
+          }
+          .capture-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+          }
+          a.icon-button,
+          button.icon-button {
+            appearance: none;
+            align-items: center;
+            background: transparent;
+            border: 1px solid var(--fg);
+            border-radius: 50%;
+            color: var(--fg);
+            cursor: pointer;
+            display: inline-flex;
+            flex: 0 0 auto;
+            height: 42px;
+            justify-content: center;
+            padding: 0;
+            text-decoration: none;
+            width: 42px;
+          }
+          button.icon-button {
+            font-family: inherit;
+          }
+          .capture-stage .icon-button {
+            background: rgba(247, 247, 244, 0.94);
+            margin: 0 8px;
+          }
+          .icon-button svg {
+            display: block;
+            fill: none;
+            height: 20px;
+            stroke: currentColor;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            stroke-width: 2;
+            width: 20px;
+          }
+          button.icon-button:disabled {
+            cursor: default;
+            opacity: 0.35;
+          }
           .details {
             display: grid;
             border-top: 1px solid var(--line);
@@ -311,7 +369,13 @@ def render_page() -> bytes:
           }
           @media (max-width: 640px) {
             header { padding-bottom: 42px; }
-            .row { grid-template-columns: 1fr; gap: 10px; }
+            .section-heading { align-items: flex-start; }
+            .capture-stage {
+              grid-template-columns: 48px minmax(0, 1fr) 48px;
+              min-height: 220px;
+            }
+            .capture-stage .icon-button { margin: 0 4px; }
+            .capture-info { grid-template-columns: minmax(0, 1fr) auto; }
             .detail { grid-template-columns: 1fr; gap: 3px; }
           }
         </style>
@@ -322,7 +386,6 @@ def render_page() -> bytes:
             <h1>Tiny Film</h1>
             <div class="actions">
               <button class="button primary" id="capture-button" type="button">Take Photo</button>
-              <a class="button" href="/download/captures/">Download All</a>
             </div>
           </header>
 
@@ -333,8 +396,11 @@ def render_page() -> bytes:
           </section>
 
           <section>
-            <h2>Captures</h2>
-            <div id="capture-list"></div>
+            <div class="section-heading">
+              <h2>Captures</h2>
+              <p class="status" id="capture-position"></p>
+            </div>
+            <div class="capture-browser" id="capture-browser"></div>
           </section>
 
           <section>
@@ -351,10 +417,13 @@ def render_page() -> bytes:
         <script>
           const statusElement = document.getElementById("status");
           const latestFrame = document.getElementById("latest-frame");
-          const captureList = document.getElementById("capture-list");
+          const captureBrowser = document.getElementById("capture-browser");
+          const capturePosition = document.getElementById("capture-position");
           const deviceDetails = document.getElementById("device-details");
           const batteryDetails = document.getElementById("battery-details");
           const captureButton = document.getElementById("capture-button");
+          let captureImages = [];
+          let selectedCaptureIndex = 0;
 
           function formatBytes(value) {
             if (!Number.isFinite(value)) return "";
@@ -390,7 +459,106 @@ def render_page() -> bytes:
             return String(value).replace(/\\b\\w/g, (letter) => letter.toUpperCase());
           }
 
-          function renderImages(images) {
+          function iconSvg(name) {
+            const icons = {
+              download: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="M7 10l5 5 5-5"></path><path d="M12 15V3"></path></svg>',
+              next: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>',
+              previous: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg>',
+            };
+            return icons[name] || "";
+          }
+
+          function makeIconButton(tagName, iconName, label) {
+            const element = document.createElement(tagName);
+            element.className = "icon-button";
+            element.title = label;
+            element.setAttribute("aria-label", label);
+            element.innerHTML = iconSvg(iconName);
+            if (tagName === "button") {
+              element.type = "button";
+            }
+            return element;
+          }
+
+          function selectCapture(index) {
+            if (index < 0 || index >= captureImages.length) return;
+            selectedCaptureIndex = index;
+            renderCaptureBrowser();
+          }
+
+          function renderCaptureBrowser() {
+            captureBrowser.innerHTML = "";
+            if (!captureImages.length) {
+              capturePosition.textContent = "";
+              captureBrowser.innerHTML = '<div class="empty">No captures yet.</div>';
+              return;
+            }
+
+            const image = captureImages[selectedCaptureIndex];
+            const viewUrl = image.view_url || image.download_url || "";
+            capturePosition.textContent = `${selectedCaptureIndex + 1} of ${captureImages.length}`;
+
+            const stage = document.createElement("div");
+            stage.className = "capture-stage";
+
+            const previousButton = makeIconButton("button", "previous", "Previous capture");
+            previousButton.disabled = selectedCaptureIndex === 0;
+            previousButton.addEventListener("click", () => {
+              selectCapture(selectedCaptureIndex - 1);
+            });
+
+            const preview = document.createElement("img");
+            preview.src = `${viewUrl}?v=${encodeURIComponent(image.modified_unix || "")}`;
+            preview.alt = image.filename || "Capture";
+
+            const nextButton = makeIconButton("button", "next", "Next capture");
+            nextButton.disabled = selectedCaptureIndex === captureImages.length - 1;
+            nextButton.addEventListener("click", () => {
+              selectCapture(selectedCaptureIndex + 1);
+            });
+
+            stage.append(previousButton, preview, nextButton);
+
+            const info = document.createElement("div");
+            info.className = "capture-info";
+            const text = document.createElement("div");
+            const name = document.createElement("div");
+            name.className = "name";
+            name.textContent = image.relative_path || image.filename;
+            const meta = document.createElement("span");
+            meta.className = "meta";
+            meta.textContent = [formatDate(image.modified_unix), formatBytes(image.size_bytes)]
+              .filter(Boolean)
+              .join(" / ");
+            text.append(name, meta);
+
+            const controls = document.createElement("div");
+            controls.className = "capture-controls";
+            const downloadLink = makeIconButton("a", "download", `Download ${image.filename || "capture"}`);
+            downloadLink.href = image.download_url;
+            downloadLink.download = image.filename || "capture.jpg";
+            controls.appendChild(downloadLink);
+
+            info.append(text, controls);
+            captureBrowser.append(stage, info);
+          }
+
+          function renderImages(images, options = {}) {
+            const previousSelection = captureImages[selectedCaptureIndex];
+            const previousPath = previousSelection && previousSelection.relative_path;
+            captureImages = images;
+            if (options.selectLatest) {
+              selectedCaptureIndex = 0;
+            } else {
+              const preservedIndex = previousPath
+                ? captureImages.findIndex((image) => image.relative_path === previousPath)
+                : selectedCaptureIndex;
+              selectedCaptureIndex = preservedIndex >= 0
+                ? Math.min(preservedIndex, captureImages.length - 1)
+                : 0;
+              if (selectedCaptureIndex < 0) selectedCaptureIndex = 0;
+            }
+
             statusElement.textContent = `${images.length} capture${images.length === 1 ? "" : "s"}`;
             latestFrame.innerHTML = "";
             if (images.length) {
@@ -401,31 +569,7 @@ def render_page() -> bytes:
             } else {
               latestFrame.innerHTML = '<div class="empty">No captures yet.</div>';
             }
-            captureList.innerHTML = images.length ? "" : '<div class="empty">No captures yet.</div>';
-            images.forEach((image) => {
-              const row = document.createElement("div");
-              row.className = "row";
-
-              const text = document.createElement("div");
-              const name = document.createElement("div");
-              name.className = "name";
-              name.textContent = image.relative_path || image.filename;
-              const meta = document.createElement("span");
-              meta.className = "meta";
-              meta.textContent = [formatDate(image.modified_unix), formatBytes(image.size_bytes)]
-                .filter(Boolean)
-                .join(" / ");
-              text.append(name, meta);
-
-              const link = document.createElement("a");
-              link.className = "button";
-              link.href = image.download_url;
-              link.download = image.filename || "capture.jpg";
-              link.textContent = "Download";
-
-              row.append(text, link);
-              captureList.appendChild(row);
-            });
+            renderCaptureBrowser();
           }
 
           function renderDetails(details) {
@@ -481,11 +625,11 @@ def render_page() -> bytes:
             });
           }
 
-          async function refreshImages() {
+          async function refreshImages(options = {}) {
             const response = await fetch("/api/images", { cache: "no-store" });
             if (!response.ok) throw new Error("Image request failed");
             const data = await response.json();
-            renderImages(data.images || []);
+            renderImages(data.images || [], options);
           }
 
           async function refreshDetails() {
@@ -514,7 +658,7 @@ def render_page() -> bytes:
               if (!response.ok) {
                 throw new Error(data.error || "Capture failed");
               }
-              await refreshImages();
+              await refreshImages({ selectLatest: true });
               await refreshDetails();
               const savedPath = data.image && data.image.relative_path ? data.image.relative_path : "photo";
               statusElement.textContent = `Saved ${savedPath}`;
@@ -580,13 +724,16 @@ def build_handler(project_root: Path, port: int):
                 status=status,
             )
 
-        def _serve_capture(self, image_path: Path) -> None:
+        def _serve_capture(self, image_path: Path, as_attachment: bool = True) -> None:
             body = image_path.read_bytes()
             content_type = mimetypes.guess_type(image_path.name)[0] or "application/octet-stream"
+            headers = {}
+            if as_attachment:
+                headers["Content-Disposition"] = attachment_header(image_path.name)
             self._send_bytes(
                 body,
                 content_type,
-                extra_headers={"Content-Disposition": attachment_header(image_path.name)},
+                extra_headers=headers,
             )
 
         def _serve_latest_image(self, include_body: bool = True) -> None:
@@ -639,13 +786,13 @@ def build_handler(project_root: Path, port: int):
                 self._serve_latest_image(include_body=True)
                 return
 
-            if request_path == "/download/captures/":
-                body = build_captures_zip(project_root)
-                self._send_bytes(
-                    body,
-                    "application/zip",
-                    extra_headers={"Content-Disposition": attachment_header("tiny-film-captures.zip")},
-                )
+            if request_path.startswith("/image/captures/"):
+                relative_path = request_path[len("/image/captures/") :]
+                image_path = get_capture_image_by_relative_path(project_root, relative_path)
+                if image_path is None:
+                    self.send_error(HTTPStatus.NOT_FOUND, "Capture not found")
+                    return
+                self._serve_capture(image_path, as_attachment=False)
                 return
 
             if request_path.startswith("/download/captures/"):
