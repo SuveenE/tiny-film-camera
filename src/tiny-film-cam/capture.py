@@ -17,8 +17,8 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--output-dir",
-        default="images",
-        help="Directory for timestamped output when --output is omitted.",
+        default="data/captures",
+        help="Base directory for date-grouped timestamped output when --output is omitted.",
     )
     parser.add_argument("--width", type=int, help="Optional still capture width.")
     parser.add_argument("--height", type=int, help="Optional still capture height.")

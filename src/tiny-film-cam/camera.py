@@ -12,7 +12,7 @@ FocusMode = Literal["default", "auto", "continuous", "manual"]
 
 @dataclass(frozen=True)
 class CaptureSettings:
-    output_dir: Path = Path("images")
+    output_dir: Path = Path("data/captures")
     filename: str | None = None
     width: int | None = None
     height: int | None = None
@@ -26,8 +26,11 @@ class CaptureSettings:
     lens_position: float | None = None
 
 
-def _timestamped_filename() -> str:
-    return datetime.now().strftime("%Y%m%d-%H%M%S-%f.jpg")
+def _timestamped_path(output_dir: Path) -> Path:
+    captured_at = datetime.now()
+    date_dir = captured_at.strftime("%Y-%m-%d")
+    filename = f"{captured_at.strftime('%Y%m%d-%H%M%S-%f')}.jpg"
+    return output_dir / date_dir / filename
 
 
 def _normalized_quality(value: int) -> int:
@@ -38,7 +41,7 @@ def _output_path(settings: CaptureSettings) -> Path:
     if settings.filename:
         path = Path(settings.filename).expanduser()
     else:
-        path = settings.output_dir.expanduser() / _timestamped_filename()
+        path = _timestamped_path(settings.output_dir.expanduser())
     path.parent.mkdir(parents=True, exist_ok=True)
     return path
 

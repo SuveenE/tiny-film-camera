@@ -8,15 +8,22 @@ not include OpenAI image generation, queues, phone UI, or service deployment.
 Run one capture from the project root on the Raspberry Pi:
 
 ```bash
-python3 src/tiny-film-cam/capture.py --output photo1.jpg
+python3 src/tiny-film-cam/capture.py
 ```
 
-If `--output` is omitted, the script writes a timestamped JPEG into `images/`.
+If `--output` is omitted, the script writes a timestamped JPEG into
+`data/captures/YYYY-MM-DD/`.
+
+To save to a specific filename instead, pass `--output`:
+
+```bash
+python3 src/tiny-film-cam/capture.py --output photo1.jpg
+```
 
 For a Camera Module 3 full-size still, pass an explicit size:
 
 ```bash
-python3 src/tiny-film-cam/capture.py --output photo1.jpg --width 4608 --height 2592
+python3 src/tiny-film-cam/capture.py --width 4608 --height 2592
 ```
 
 The default image tuning matches the existing `rpicam-still` command:
