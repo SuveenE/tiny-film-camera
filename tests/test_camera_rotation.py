@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib.util
 import sys
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 import numpy as np
@@ -41,6 +42,12 @@ def marker_image() -> Image.Image:
 
 
 class CameraRotationTest(unittest.TestCase):
+    def test_capture_settings_default_rotation_is_90(self) -> None:
+        with patch.dict("os.environ", {}, clear=True):
+            settings = camera.capture_settings_from_env(Path.cwd())
+
+        self.assertEqual(settings.rotation, 90)
+
     def test_picamera_frame_is_converted_from_bgr_to_rgb(self) -> None:
         frame = np.array(
             [

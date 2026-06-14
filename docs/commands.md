@@ -27,12 +27,12 @@ scp -r suveen@172.20.10.2:/home/suveen/tiny-film/data/captures .
 
 ## Restart services
 ```bash
-sudo systemctl restart tiny-film-web.service tiny-film-shutter.service
+sudo systemctl restart tiny-film-web.service tiny-film-shutter.service tiny-film-battery.service
 ```
 
 ## Service status
 ```bash
-sudo systemctl status tiny-film-web.service tiny-film-shutter.service --no-pager
+sudo systemctl status tiny-film-web.service tiny-film-shutter.service tiny-film-battery.service --no-pager
 ```
 
 ## Take a photo through the web server
@@ -40,7 +40,12 @@ sudo systemctl status tiny-film-web.service tiny-film-shutter.service --no-pager
 curl -X POST http://localhost:8000/api/capture
 ```
 
+## Read battery details through the web server
+```bash
+curl http://localhost:8000/api/battery
+```
+
 ## Follow service logs
 ```bash
-sudo journalctl -u tiny-film-web.service -u tiny-film-shutter.service -f
+sudo journalctl -u tiny-film-web.service -u tiny-film-shutter.service -u tiny-film-battery.service -f
 ```

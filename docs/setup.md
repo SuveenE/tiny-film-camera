@@ -20,12 +20,21 @@
    ```
 7. Install Python helpers:
    ```bash
-   sudo apt install -y python3-picamera2 python3-pil python3-gpiozero
+   sudo apt install -y python3-picamera2 python3-pil python3-gpiozero python3-smbus i2c-tools
    ```
-8. Wire the shutter button between BCM GPIO 17, physical pin 11, and any GND
+8. Enable I2C for the Waveshare UPS HAT (C):
+   ```bash
+   sudo raspi-config
+   ```
+   Choose `Interface Options` -> `I2C` -> `Yes`, then reboot.
+9. Confirm the UPS HAT is visible at address `0x43`:
+   ```bash
+   i2cdetect -y 1
+   ```
+10. Wire the shutter button between BCM GPIO 17, physical pin 11, and any GND
    pin. With the default `.env.example` settings, the Pi uses its internal
    pull-up resistor.
-9. Install the Tiny Film boot services:
+11. Install the Tiny Film boot services:
    ```bash
    ./scripts/install_service.sh --enable-now
    ```

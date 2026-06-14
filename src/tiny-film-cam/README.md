@@ -45,4 +45,5 @@ The web app serves captures from `data/captures/` and exposes:
 - `POST /api/capture`
 - `GET /download/captures/`
 - `GET /api/device-details`
+- `GET /api/battery`
 - `GET /latest-image`

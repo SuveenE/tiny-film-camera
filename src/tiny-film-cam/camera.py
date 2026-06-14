@@ -14,6 +14,7 @@ FocusMode = Literal["default", "auto", "continuous", "manual"]
 ROTATIONS = {0, 90, 180, 270}
 FOCUS_MODES = {"default", "auto", "continuous", "manual"}
 PICAMERA_ARRAY_FORMAT = "RGB888"
+DEFAULT_ROTATION: Rotation = 90
 
 
 class CameraCaptureError(RuntimeError):
@@ -34,7 +35,7 @@ class CaptureSettings:
     sharpness: float = 0.5
     contrast: float = 0.9
     saturation: float = 0.9
-    rotation: Rotation = 0
+    rotation: Rotation = DEFAULT_ROTATION
     warmup_seconds: float = 0.5
     focus_mode: FocusMode = "continuous"
     lens_position: float | None = None
@@ -84,9 +85,9 @@ def capture_settings_from_env(project_root: Path) -> CaptureSettings:
     focus_mode = os.environ.get("TINY_FILM_CAPTURE_FOCUS_MODE", "continuous")
     if focus_mode not in FOCUS_MODES:
         focus_mode = "continuous"
-    rotation = env_int("TINY_FILM_CAPTURE_ROTATION", 0)
+    rotation = env_int("TINY_FILM_CAPTURE_ROTATION", DEFAULT_ROTATION)
     if rotation not in ROTATIONS:
-        rotation = 0
+        rotation = DEFAULT_ROTATION
     return CaptureSettings(
         output_dir=capture_output_dir_from_env(project_root),
         width=env_optional_int("TINY_FILM_CAPTURE_WIDTH"),
