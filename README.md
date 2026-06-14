@@ -21,6 +21,25 @@ Install the web app and physical shutter services on the Raspberry Pi:
 ./scripts/install_service.sh --enable-now
 ```
 
+After pulling new changes, restart both services:
+
+```bash
+git pull
+sudo systemctl restart tiny-film-web.service tiny-film-shutter.service
+```
+
+Check service status:
+
+```bash
+sudo systemctl status tiny-film-web.service tiny-film-shutter.service --no-pager
+```
+
+Follow live service logs:
+
+```bash
+sudo journalctl -u tiny-film-web.service -u tiny-film-shutter.service -f
+```
+
 The web service starts the phone app on port `8000`. The phone app and shutter
 service both save captures to `data/captures/`. The shutter service listens for
 a simple physical button on BCM GPIO 17 by default. Wire the button between BCM

@@ -13,6 +13,7 @@ Rotation = Literal[0, 90, 180, 270]
 FocusMode = Literal["default", "auto", "continuous", "manual"]
 ROTATIONS = {0, 90, 180, 270}
 FOCUS_MODES = {"default", "auto", "continuous", "manual"}
+PICAMERA_ARRAY_FORMAT = "RGB888"
 
 
 class CameraCaptureError(RuntimeError):
@@ -146,6 +147,14 @@ def _rotate_image(image, rotation: Rotation):
     return image
 
 
+def _image_from_picamera_frame(frame):
+    from PIL import Image
+
+    # Picamera2's RGB888 stream is B, G, R byte order in NumPy arrays.
+    rgb_frame = frame[:, :, [2, 1, 0]]
+    return Image.fromarray(rgb_frame, "RGB")
+
+
 def _camera_controls(settings: CaptureSettings) -> dict[str, object]:
     controls: dict[str, object] = {
         "Sharpness": settings.sharpness,
@@ -216,7 +225,7 @@ def capture_photo(settings: CaptureSettings = CaptureSettings()) -> Path:
 
     with _locked_camera(settings.output_dir.expanduser()):
         picam2 = _open_camera(Picamera2)
-        main_config: dict[str, object] = {"format": "RGB888"}
+        main_config: dict[str, object] = {"format": PICAMERA_ARRAY_FORMAT}
         if settings.width and settings.height:
             main_config["size"] = (settings.width, settings.height)
 
@@ -240,7 +249,7 @@ def capture_photo(settings: CaptureSettings = CaptureSettings()) -> Path:
                 picam2.stop()
             picam2.close()
 
-        image = Image.fromarray(frame, "RGB")
+        image = _image_from_picamera_frame(frame)
         image = _rotate_image(image, settings.rotation)
         image.save(output_path, format="JPEG", quality=_normalized_quality(settings.quality))
         return output_path

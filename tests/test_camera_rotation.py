@@ -5,6 +5,7 @@ import sys
 import unittest
 from pathlib import Path
 
+import numpy as np
 from PIL import Image
 
 
@@ -40,6 +41,23 @@ def marker_image() -> Image.Image:
 
 
 class CameraRotationTest(unittest.TestCase):
+    def test_picamera_frame_is_converted_from_bgr_to_rgb(self) -> None:
+        frame = np.array(
+            [
+                [
+                    [0, 0, 255],
+                    [255, 0, 0],
+                ]
+            ],
+            dtype=np.uint8,
+        )
+
+        image = camera._image_from_picamera_frame(frame)
+
+        self.assertEqual(image.mode, "RGB")
+        self.assertEqual(image.getpixel((0, 0)), (255, 0, 0))
+        self.assertEqual(image.getpixel((1, 0)), (0, 0, 255))
+
     def test_rotation_90_is_clockwise(self) -> None:
         rotated = camera._rotate_image(marker_image(), 90)
 
