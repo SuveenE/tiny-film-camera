@@ -42,11 +42,62 @@ def marker_image() -> Image.Image:
 
 
 class CameraRotationTest(unittest.TestCase):
-    def test_capture_settings_default_rotation_is_90(self) -> None:
+    def test_capture_settings_default_rotation_is_270(self) -> None:
         with patch.dict("os.environ", {}, clear=True):
             settings = camera.capture_settings_from_env(Path.cwd())
 
-        self.assertEqual(settings.rotation, 90)
+        self.assertEqual(settings.rotation, 270)
+
+    def test_capture_settings_default_film_source_controls(self) -> None:
+        with patch.dict("os.environ", {}, clear=True):
+            settings = camera.capture_settings_from_env(Path.cwd())
+
+        self.assertEqual(settings.sharpness, 0.3)
+        self.assertEqual(settings.contrast, 0.85)
+        self.assertEqual(settings.saturation, 0.9)
+        self.assertEqual(settings.exposure_value, -0.7)
+        self.assertEqual(settings.awb_mode, "daylight")
+        self.assertFalse(settings.awb_lock)
+
+    def test_capture_settings_reads_film_source_controls_from_env(self) -> None:
+        with patch.dict(
+            "os.environ",
+            {
+                "TINY_FILM_CAPTURE_EV": "-0.7",
+                "TINY_FILM_CAPTURE_BRACKETS": "0,-0.7,-1.0",
+                "TINY_FILM_CAPTURE_BRACKET_SETTLE_SECONDS": "0.4",
+                "TINY_FILM_CAPTURE_AWB_MODE": "cloudy",
+                "TINY_FILM_CAPTURE_AWB_LOCK": "1",
+            },
+            clear=True,
+        ):
+            settings = camera.capture_settings_from_env(Path.cwd())
+
+        self.assertEqual(settings.exposure_value, -0.7)
+        self.assertEqual(settings.exposure_brackets, (0.0, -0.7, -1.0))
+        self.assertEqual(settings.bracket_settle_seconds, 0.4)
+        self.assertEqual(settings.awb_mode, "cloudy")
+        self.assertTrue(settings.awb_lock)
+
+    def test_bracket_output_paths_include_ev_suffixes(self) -> None:
+        settings = camera.CaptureSettings(
+            filename="photo.jpg",
+            exposure_brackets=(0.0, -0.7, -1.0),
+        )
+
+        paths = camera._output_paths(settings)
+
+        self.assertEqual(
+            [path.name for path in paths],
+            ["photo_ev+0p0.jpg", "photo_ev-0p7.jpg", "photo_ev-1p0.jpg"],
+        )
+
+    def test_camera_controls_include_exposure_value(self) -> None:
+        settings = camera.CaptureSettings(exposure_value=-0.7)
+
+        controls = camera._camera_controls(settings)
+
+        self.assertEqual(controls["ExposureValue"], -0.7)
 
     def test_picamera_frame_is_converted_from_bgr_to_rgb(self) -> None:
         frame = np.array(

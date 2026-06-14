@@ -8,8 +8,9 @@ import threading
 from pathlib import Path
 
 from camera import (
+    AWB_MODES,
     CaptureSettings,
-    capture_photo,
+    capture_photos,
     capture_settings_from_env,
     resolve_project_path,
 )
@@ -37,6 +38,10 @@ def env_float(name: str, default: float) -> float:
     if value is None or value.strip() == "":
         return default
     return float(value)
+
+
+def parse_exposure_brackets(value: str) -> tuple[float, ...]:
+    return tuple(float(part.strip()) for part in value.split(",") if part.strip())
 
 
 def default_project_root() -> Path:
@@ -86,6 +91,21 @@ def parse_args() -> argparse.Namespace:
         default=capture_defaults.saturation,
     )
     parser.add_argument(
+        "--ev",
+        type=float,
+        default=capture_defaults.exposure_value,
+    )
+    parser.add_argument(
+        "--exposure-brackets",
+        type=parse_exposure_brackets,
+        default=capture_defaults.exposure_brackets,
+    )
+    parser.add_argument(
+        "--bracket-settle-seconds",
+        type=float,
+        default=capture_defaults.bracket_settle_seconds,
+    )
+    parser.add_argument(
         "--rotation",
         type=int,
         choices=(0, 90, 180, 270),
@@ -106,6 +126,21 @@ def parse_args() -> argparse.Namespace:
         "--lens-position",
         type=float,
         default=capture_defaults.lens_position,
+    )
+    parser.add_argument(
+        "--awb-mode",
+        choices=sorted(AWB_MODES),
+        default=capture_defaults.awb_mode,
+    )
+    parser.add_argument(
+        "--awb-lock",
+        action="store_true",
+        default=capture_defaults.awb_lock,
+    )
+    parser.add_argument(
+        "--no-awb-lock",
+        dest="awb_lock",
+        action="store_false",
     )
     return parser.parse_args()
 
@@ -148,13 +183,18 @@ def main() -> None:
                 sharpness=args.sharpness,
                 contrast=args.contrast,
                 saturation=args.saturation,
+                exposure_value=args.ev,
+                exposure_brackets=args.exposure_brackets,
+                bracket_settle_seconds=args.bracket_settle_seconds,
                 rotation=args.rotation,
                 warmup_seconds=args.warmup_seconds,
                 focus_mode=args.focus_mode,
                 lens_position=args.lens_position,
+                awb_mode=args.awb_mode,
+                awb_lock=args.awb_lock,
             )
-            output_path = capture_photo(settings)
-            LOGGER.info("Saved photo to %s", output_path)
+            output_paths = capture_photos(settings)
+            LOGGER.info("Saved %s photo(s): %s", len(output_paths), output_paths)
         except Exception:
             LOGGER.exception("Capture failed")
         finally:
