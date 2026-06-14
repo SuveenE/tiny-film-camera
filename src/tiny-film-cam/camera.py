@@ -1,13 +1,18 @@
 from __future__ import annotations
 
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime
+import fcntl
+import os
 from pathlib import Path
-from typing import Literal
+from typing import Iterator, Literal
 
 
 Rotation = Literal[0, 90, 180, 270]
 FocusMode = Literal["default", "auto", "continuous", "manual"]
+ROTATIONS = {0, 90, 180, 270}
+FOCUS_MODES = {"default", "auto", "continuous", "manual"}
 
 
 @dataclass(frozen=True)
@@ -24,6 +29,80 @@ class CaptureSettings:
     warmup_seconds: float = 0.5
     focus_mode: FocusMode = "continuous"
     lens_position: float | None = None
+
+
+def env_float(name: str, default: float) -> float:
+    value = os.environ.get(name)
+    if value is None or value.strip() == "":
+        return default
+    return float(value)
+
+
+def env_int(name: str, default: int) -> int:
+    value = os.environ.get(name)
+    if value is None or value.strip() == "":
+        return default
+    return int(value)
+
+
+def env_optional_int(name: str) -> int | None:
+    value = os.environ.get(name)
+    if value is None or value.strip() == "":
+        return None
+    return int(value)
+
+
+def env_optional_float(name: str) -> float | None:
+    value = os.environ.get(name)
+    if value is None or value.strip() == "":
+        return None
+    return float(value)
+
+
+def resolve_project_path(project_root: Path, value: str | Path) -> Path:
+    path = Path(value).expanduser()
+    if path.is_absolute():
+        return path
+    return project_root / path
+
+
+def capture_output_dir_from_env(project_root: Path) -> Path:
+    output_dir = os.environ.get("TINY_FILM_OUTPUT_DIR", "data/captures")
+    return resolve_project_path(project_root, output_dir)
+
+
+def capture_settings_from_env(project_root: Path) -> CaptureSettings:
+    focus_mode = os.environ.get("TINY_FILM_CAPTURE_FOCUS_MODE", "continuous")
+    if focus_mode not in FOCUS_MODES:
+        focus_mode = "continuous"
+    rotation = env_int("TINY_FILM_CAPTURE_ROTATION", 0)
+    if rotation not in ROTATIONS:
+        rotation = 0
+    return CaptureSettings(
+        output_dir=capture_output_dir_from_env(project_root),
+        width=env_optional_int("TINY_FILM_CAPTURE_WIDTH"),
+        height=env_optional_int("TINY_FILM_CAPTURE_HEIGHT"),
+        quality=env_int("TINY_FILM_CAPTURE_QUALITY", 95),
+        sharpness=env_float("TINY_FILM_CAPTURE_SHARPNESS", 0.5),
+        contrast=env_float("TINY_FILM_CAPTURE_CONTRAST", 0.9),
+        saturation=env_float("TINY_FILM_CAPTURE_SATURATION", 0.9),
+        rotation=rotation,  # type: ignore[arg-type]
+        warmup_seconds=env_float("TINY_FILM_CAPTURE_WARMUP_SECONDS", 0.5),
+        focus_mode=focus_mode,  # type: ignore[arg-type]
+        lens_position=env_optional_float("TINY_FILM_CAPTURE_LENS_POSITION"),
+    )
+
+
+@contextmanager
+def _locked_camera(output_dir: Path) -> Iterator[None]:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    lock_path = output_dir / ".tiny-film-camera.lock"
+    with lock_path.open("w") as lock_file:
+        fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
 
 
 def _timestamped_path(output_dir: Path) -> Path:
@@ -89,32 +168,33 @@ def capture_photo(settings: CaptureSettings = CaptureSettings()) -> Path:
     from PIL import Image
     from picamera2 import Picamera2
 
-    picam2 = Picamera2()
-    main_config: dict[str, object] = {"format": "RGB888"}
-    if settings.width and settings.height:
-        main_config["size"] = (settings.width, settings.height)
+    with _locked_camera(settings.output_dir.expanduser()):
+        picam2 = Picamera2()
+        main_config: dict[str, object] = {"format": "RGB888"}
+        if settings.width and settings.height:
+            main_config["size"] = (settings.width, settings.height)
 
-    config = picam2.create_still_configuration(
-        main=main_config,
-        controls=_camera_controls(settings),
-    )
-    output_path = _output_path(settings)
-    started = False
+        config = picam2.create_still_configuration(
+            main=main_config,
+            controls=_camera_controls(settings),
+        )
+        output_path = _output_path(settings)
+        started = False
 
-    try:
-        picam2.configure(config)
-        picam2.start()
-        started = True
-        if settings.warmup_seconds > 0:
-            time.sleep(settings.warmup_seconds)
+        try:
+            picam2.configure(config)
+            picam2.start()
+            started = True
+            if settings.warmup_seconds > 0:
+                time.sleep(settings.warmup_seconds)
 
-        frame = picam2.capture_array("main")
-    finally:
-        if started:
-            picam2.stop()
-        picam2.close()
+            frame = picam2.capture_array("main")
+        finally:
+            if started:
+                picam2.stop()
+            picam2.close()
 
-    image = Image.fromarray(frame, "RGB")
-    image = _rotate_image(image, settings.rotation)
-    image.save(output_path, format="JPEG", quality=_normalized_quality(settings.quality))
-    return output_path
+        image = Image.fromarray(frame, "RGB")
+        image = _rotate_image(image, settings.rotation)
+        image.save(output_path, format="JPEG", quality=_normalized_quality(settings.quality))
+        return output_path

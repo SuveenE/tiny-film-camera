@@ -7,7 +7,12 @@ import signal
 import threading
 from pathlib import Path
 
-from camera import CaptureSettings, capture_photo
+from camera import (
+    CaptureSettings,
+    capture_photo,
+    capture_settings_from_env,
+    resolve_project_path,
+)
 
 
 LOGGER = logging.getLogger("tiny_film.shutter")
@@ -20,13 +25,6 @@ def env_bool(name: str, default: bool) -> bool:
     return value.strip().lower() not in {"0", "false", "no", "off"}
 
 
-def env_float(name: str, default: float) -> float:
-    value = os.environ.get(name)
-    if value is None or value.strip() == "":
-        return default
-    return float(value)
-
-
 def env_int(name: str, default: int) -> int:
     value = os.environ.get(name)
     if value is None or value.strip() == "":
@@ -34,17 +32,10 @@ def env_int(name: str, default: int) -> int:
     return int(value)
 
 
-def env_optional_int(name: str) -> int | None:
+def env_float(name: str, default: float) -> float:
     value = os.environ.get(name)
     if value is None or value.strip() == "":
-        return None
-    return int(value)
-
-
-def env_optional_float(name: str) -> float | None:
-    value = os.environ.get(name)
-    if value is None or value.strip() == "":
-        return None
+        return default
     return float(value)
 
 
@@ -52,18 +43,13 @@ def default_project_root() -> Path:
     return Path(__file__).resolve().parents[2]
 
 
-def resolve_project_path(project_root: Path, value: str) -> Path:
-    path = Path(value).expanduser()
-    if path.is_absolute():
-        return path
-    return project_root / path
-
-
 def parse_args() -> argparse.Namespace:
+    project_root = default_project_root().expanduser().resolve()
+    capture_defaults = capture_settings_from_env(project_root)
     parser = argparse.ArgumentParser(
         description="Run the Tiny Film physical shutter button listener."
     )
-    parser.add_argument("--project-root", type=Path, default=default_project_root())
+    parser.add_argument("--project-root", type=Path, default=project_root)
     parser.add_argument("--pin", type=int, default=env_int("TINY_FILM_BUTTON_PIN", 17))
     parser.set_defaults(pull_up=env_bool("TINY_FILM_BUTTON_PULL_UP", True))
     parser.add_argument("--pull-up", dest="pull_up", action="store_true")
@@ -75,50 +61,50 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--output-dir",
-        default=os.environ.get("TINY_FILM_OUTPUT_DIR", "data/captures"),
+        default=str(capture_defaults.output_dir),
     )
-    parser.add_argument("--width", type=int, default=env_optional_int("TINY_FILM_CAPTURE_WIDTH"))
-    parser.add_argument("--height", type=int, default=env_optional_int("TINY_FILM_CAPTURE_HEIGHT"))
+    parser.add_argument("--width", type=int, default=capture_defaults.width)
+    parser.add_argument("--height", type=int, default=capture_defaults.height)
     parser.add_argument(
         "--quality",
         type=int,
-        default=env_int("TINY_FILM_CAPTURE_QUALITY", 95),
+        default=capture_defaults.quality,
     )
     parser.add_argument(
         "--sharpness",
         type=float,
-        default=env_float("TINY_FILM_CAPTURE_SHARPNESS", 0.5),
+        default=capture_defaults.sharpness,
     )
     parser.add_argument(
         "--contrast",
         type=float,
-        default=env_float("TINY_FILM_CAPTURE_CONTRAST", 0.9),
+        default=capture_defaults.contrast,
     )
     parser.add_argument(
         "--saturation",
         type=float,
-        default=env_float("TINY_FILM_CAPTURE_SATURATION", 0.9),
+        default=capture_defaults.saturation,
     )
     parser.add_argument(
         "--rotation",
         type=int,
         choices=(0, 90, 180, 270),
-        default=env_int("TINY_FILM_CAPTURE_ROTATION", 0),
+        default=capture_defaults.rotation,
     )
     parser.add_argument(
         "--warmup-seconds",
         type=float,
-        default=env_float("TINY_FILM_CAPTURE_WARMUP_SECONDS", 0.5),
+        default=capture_defaults.warmup_seconds,
     )
     parser.add_argument(
         "--focus-mode",
         choices=("default", "auto", "continuous", "manual"),
-        default=os.environ.get("TINY_FILM_CAPTURE_FOCUS_MODE", "continuous"),
+        default=capture_defaults.focus_mode,
     )
     parser.add_argument(
         "--lens-position",
         type=float,
-        default=env_optional_float("TINY_FILM_CAPTURE_LENS_POSITION"),
+        default=capture_defaults.lens_position,
     )
     return parser.parse_args()
 
