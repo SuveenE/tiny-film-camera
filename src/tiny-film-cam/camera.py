@@ -15,6 +15,14 @@ ROTATIONS = {0, 90, 180, 270}
 FOCUS_MODES = {"default", "auto", "continuous", "manual"}
 
 
+class CameraCaptureError(RuntimeError):
+    """Raised when a photo cannot be captured."""
+
+
+class CameraUnavailableError(CameraCaptureError):
+    """Raised when Raspberry Pi OS does not report an available camera."""
+
+
 @dataclass(frozen=True)
 class CaptureSettings:
     output_dir: Path = Path("data/captures")
@@ -126,14 +134,15 @@ def _output_path(settings: CaptureSettings) -> Path:
 
 
 def _rotate_image(image, rotation: Rotation):
+    """Rotate saved pixels clockwise by the configured number of degrees."""
     from PIL import Image
 
     if rotation == 90:
-        return image.transpose(Image.Transpose.ROTATE_90)
+        return image.transpose(Image.Transpose.ROTATE_270)
     if rotation == 180:
         return image.transpose(Image.Transpose.ROTATE_180)
     if rotation == 270:
-        return image.transpose(Image.Transpose.ROTATE_270)
+        return image.transpose(Image.Transpose.ROTATE_90)
     return image
 
 
@@ -161,15 +170,52 @@ def _camera_controls(settings: CaptureSettings) -> dict[str, object]:
     return controls
 
 
+def _available_camera_count(Picamera2) -> int | None:
+    try:
+        cameras = Picamera2.global_camera_info()
+    except Exception:
+        return None
+    return len(cameras)
+
+
+def _open_camera(Picamera2):
+    camera_count = _available_camera_count(Picamera2)
+    if camera_count == 0:
+        raise CameraUnavailableError(
+            "No Raspberry Pi camera was detected. Run "
+            "`rpicam-hello --list-cameras` on the Pi and check the camera ribbon."
+        )
+
+    try:
+        return Picamera2()
+    except IndexError as exc:
+        raise CameraUnavailableError(
+            "No Raspberry Pi camera was detected. Run "
+            "`rpicam-hello --list-cameras` on the Pi and check the camera ribbon."
+        ) from exc
+
+
 def capture_photo(settings: CaptureSettings = CaptureSettings()) -> Path:
     """Capture one still image from a Raspberry Pi Camera Module 3."""
     import time
 
-    from PIL import Image
-    from picamera2 import Picamera2
+    try:
+        from PIL import Image
+    except ImportError as exc:
+        raise CameraCaptureError(
+            "Missing Pillow. Install it on the Pi with `sudo apt install python3-pil`."
+        ) from exc
+
+    try:
+        from picamera2 import Picamera2
+    except ImportError as exc:
+        raise CameraCaptureError(
+            "Missing Picamera2. Install it on the Pi with "
+            "`sudo apt install python3-picamera2`."
+        ) from exc
 
     with _locked_camera(settings.output_dir.expanduser()):
-        picam2 = Picamera2()
+        picam2 = _open_camera(Picamera2)
         main_config: dict[str, object] = {"format": "RGB888"}
         if settings.width and settings.height:
             main_config["size"] = (settings.width, settings.height)

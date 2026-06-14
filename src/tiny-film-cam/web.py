@@ -13,7 +13,13 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import quote, unquote
 
-from camera import capture_output_dir_from_env, capture_photo, capture_settings_from_env
+from camera import (
+    CameraCaptureError,
+    CameraUnavailableError,
+    capture_output_dir_from_env,
+    capture_photo,
+    capture_settings_from_env,
+)
 
 
 CAPTURE_SUFFIXES = {".jpg", ".jpeg", ".png", ".webp"}
@@ -594,6 +600,18 @@ def build_handler(project_root: Path, port: int):
             if request_path == "/api/capture":
                 try:
                     image = capture_from_web(project_root)
+                except CameraUnavailableError as exc:
+                    self._send_json(
+                        {"ok": False, "error": f"Capture failed: {exc}"},
+                        status=HTTPStatus.SERVICE_UNAVAILABLE,
+                    )
+                    return
+                except CameraCaptureError as exc:
+                    self._send_json(
+                        {"ok": False, "error": f"Capture failed: {exc}"},
+                        status=HTTPStatus.INTERNAL_SERVER_ERROR,
+                    )
+                    return
                 except Exception as exc:
                     self._send_json(
                         {"ok": False, "error": f"Capture failed: {exc}"},

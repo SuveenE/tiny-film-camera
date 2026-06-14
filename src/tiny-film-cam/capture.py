@@ -31,7 +31,7 @@ def parse_args() -> argparse.Namespace:
         type=int,
         choices=(0, 90, 180, 270),
         default=0,
-        help="Rotate the saved JPEG after capture.",
+        help="Rotate the saved JPEG clockwise after capture.",
     )
     parser.add_argument(
         "--warmup-seconds",
