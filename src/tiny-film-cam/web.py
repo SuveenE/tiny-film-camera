@@ -164,7 +164,7 @@ def render_page() -> bytes:
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#f7f7f4">
-        <title>Tiny Film</title>
+        <title>Suv's Tiny Film Camera</title>
         <style>
           :root {
             color-scheme: light;
@@ -179,7 +179,7 @@ def render_page() -> bytes:
             margin: 0;
             background: var(--bg);
             color: var(--fg);
-            font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+            font-family: ui-monospace, "SFMono-Regular", "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
           }
           main {
             width: min(920px, 100%);
@@ -188,13 +188,17 @@ def render_page() -> bytes:
           }
           header {
             display: flex;
-            align-items: baseline;
+            align-items: center;
             justify-content: space-between;
             gap: 18px;
             padding: 8px 0 54px;
           }
           h1, h2, p { margin: 0; }
-          h1 { font-size: 20px; font-weight: 650; letter-spacing: 0; }
+          h1 {
+            font-size: 20px;
+            font-weight: 650;
+            letter-spacing: 0;
+          }
           h2 { font-size: 28px; line-height: 1.1; font-weight: 650; letter-spacing: 0; }
           section {
             border-top: 1px solid var(--line);
@@ -269,6 +273,29 @@ def render_page() -> bytes:
             gap: 8px;
             flex-wrap: wrap;
             justify-content: flex-end;
+          }
+          .battery-summary {
+            align-items: center;
+            color: var(--fg);
+            display: inline-flex;
+            flex: 0 0 auto;
+            font-size: 14px;
+            font-weight: 650;
+            gap: 7px;
+            white-space: nowrap;
+          }
+          .battery-summary.warning {
+            color: var(--accent);
+          }
+          .battery-summary svg {
+            display: block;
+            fill: none;
+            height: 22px;
+            stroke: currentColor;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            stroke-width: 2;
+            width: 22px;
           }
           .section-heading {
             display: flex;
@@ -368,8 +395,12 @@ def render_page() -> bytes:
             font-weight: 600;
           }
           @media (max-width: 640px) {
-            header { padding-bottom: 42px; }
-            .section-heading { align-items: flex-start; }
+            header {
+              align-items: flex-start;
+              padding-bottom: 42px;
+            }
+            h1 { font-size: 18px; }
+            .section-heading { align-items: center; }
             .capture-stage {
               grid-template-columns: 48px minmax(0, 1fr) 48px;
               min-height: 220px;
@@ -383,14 +414,22 @@ def render_page() -> bytes:
       <body>
         <main>
           <header>
-            <h1>Tiny Film</h1>
-            <div class="actions">
-              <button class="button primary" id="capture-button" type="button">Take Photo</button>
+            <h1>Suv's Tiny Film Camera</h1>
+            <div class="battery-summary" id="battery-summary" aria-label="Battery unavailable" title="Battery unavailable">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M20 10v4"></path>
+                <rect x="3" y="7" width="15" height="10" rx="2"></rect>
+                <path d="M7 11h6"></path>
+              </svg>
+              <span id="battery-summary-percent">--%</span>
             </div>
           </header>
 
           <section class="latest">
-            <h2>Latest</h2>
+            <div class="section-heading">
+              <h2>Latest</h2>
+              <button class="button primary" id="capture-button" type="button">Take Photo</button>
+            </div>
             <p class="status" id="status">Checking captures...</p>
             <div class="latest-frame" id="latest-frame"></div>
           </section>
@@ -421,6 +460,8 @@ def render_page() -> bytes:
           const capturePosition = document.getElementById("capture-position");
           const deviceDetails = document.getElementById("device-details");
           const batteryDetails = document.getElementById("battery-details");
+          const batterySummary = document.getElementById("battery-summary");
+          const batterySummaryPercent = document.getElementById("battery-summary-percent");
           const captureButton = document.getElementById("capture-button");
           let captureImages = [];
           let selectedCaptureIndex = 0;
@@ -597,6 +638,7 @@ def render_page() -> bytes:
           }
 
           function renderBattery(details) {
+            renderBatterySummary(details);
             const rows = details.ok ? [
               ["Charge", formatPercent(details.percent_remaining), details.stale],
               ["State", titleCase(details.state), details.stale],
@@ -623,6 +665,15 @@ def render_page() -> bytes:
               row.append(labelElement, valueElement);
               batteryDetails.appendChild(row);
             });
+          }
+
+          function renderBatterySummary(details) {
+            const percent = details.ok ? formatPercent(details.percent_remaining) : "";
+            const label = percent ? `Battery ${percent}` : "Battery unavailable";
+            batterySummaryPercent.textContent = percent || "--%";
+            batterySummary.className = details.ok && !details.stale ? "battery-summary" : "battery-summary warning";
+            batterySummary.setAttribute("aria-label", label);
+            batterySummary.title = label;
           }
 
           async function refreshImages(options = {}) {
