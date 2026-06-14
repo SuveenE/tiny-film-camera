@@ -13,6 +13,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import quote, unquote
 
+from camera import capture_output_dir_from_env, capture_photo, capture_settings_from_env
+
 
 CAPTURE_SUFFIXES = {".jpg", ".jpeg", ".png", ".webp"}
 
@@ -22,7 +24,7 @@ def default_project_root() -> Path:
 
 
 def captures_root(project_root: Path) -> Path:
-    return project_root / "data" / "captures"
+    return capture_output_dir_from_env(project_root)
 
 
 def is_capture_image_file(path: Path) -> bool:
@@ -80,6 +82,30 @@ def build_capture_image_list(project_root: Path) -> list[dict[str, object]]:
             }
         )
     return images
+
+
+def build_capture_image(project_root: Path, image_path: Path) -> dict[str, object]:
+    root = captures_root(project_root)
+    relative_path = image_path.relative_to(root).as_posix()
+    stat = image_path.stat()
+    return {
+        "filename": image_path.name,
+        "relative_path": relative_path,
+        "download_url": f"/download/captures/{quote(relative_path)}",
+        "modified_unix": stat.st_mtime,
+        "size_bytes": stat.st_size,
+    }
+
+
+def capture_from_web(project_root: Path) -> dict[str, object]:
+    output_path = capture_photo(capture_settings_from_env(project_root))
+    try:
+        output_path.relative_to(captures_root(project_root))
+    except ValueError as exc:
+        raise RuntimeError(
+            "Capture was saved outside the configured captures directory"
+        ) from exc
+    return build_capture_image(project_root, output_path)
 
 
 def build_captures_zip(project_root: Path) -> bytes:
@@ -221,7 +247,10 @@ def render_page() -> bytes:
             font-size: 13px;
             margin-top: 4px;
           }
-          a.button {
+          a.button,
+          button.button {
+            appearance: none;
+            background: transparent;
             border: 1px solid var(--fg);
             border-radius: 999px;
             color: var(--fg);
@@ -232,9 +261,24 @@ def render_page() -> bytes:
             text-decoration: none;
             white-space: nowrap;
           }
-          a.button.primary {
+          button.button {
+            cursor: pointer;
+            font-family: inherit;
+          }
+          a.button.primary,
+          button.button.primary {
             background: var(--fg);
             color: var(--bg);
+          }
+          button.button:disabled {
+            cursor: wait;
+            opacity: 0.55;
+          }
+          .actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
           }
           .details {
             display: grid;
@@ -265,7 +309,10 @@ def render_page() -> bytes:
         <main>
           <header>
             <h1>Tiny Film</h1>
-            <a class="button primary" href="/download/captures/">Download All</a>
+            <div class="actions">
+              <button class="button primary" id="capture-button" type="button">Take Photo</button>
+              <a class="button" href="/download/captures/">Download All</a>
+            </div>
           </header>
 
           <section class="latest">
@@ -290,6 +337,7 @@ def render_page() -> bytes:
           const latestFrame = document.getElementById("latest-frame");
           const captureList = document.getElementById("capture-list");
           const deviceDetails = document.getElementById("device-details");
+          const captureButton = document.getElementById("capture-button");
 
           function formatBytes(value) {
             if (!Number.isFinite(value)) return "";
@@ -383,6 +431,35 @@ def render_page() -> bytes:
             renderDetails(await response.json());
           }
 
+          async function takePhoto() {
+            if (captureButton.disabled) return;
+            captureButton.disabled = true;
+            captureButton.textContent = "Taking...";
+            statusElement.textContent = "Taking photo...";
+            try {
+              const response = await fetch("/api/capture", {
+                method: "POST",
+                cache: "no-store",
+              });
+              const data = await response.json().catch(() => ({}));
+              if (!response.ok) {
+                throw new Error(data.error || "Capture failed");
+              }
+              await refreshImages();
+              await refreshDetails();
+              const savedPath = data.image && data.image.relative_path ? data.image.relative_path : "photo";
+              statusElement.textContent = `Saved ${savedPath}`;
+            } catch (error) {
+              statusElement.textContent = error instanceof Error ? error.message : "Capture failed";
+            } finally {
+              captureButton.disabled = false;
+              captureButton.textContent = "Take Photo";
+            }
+          }
+
+          captureButton.addEventListener("click", () => {
+            takePhoto();
+          });
           refreshImages().catch(() => {
             statusElement.textContent = "Could not load captures.";
           });
@@ -419,10 +496,15 @@ def build_handler(project_root: Path, port: int):
             self.end_headers()
             self.wfile.write(body)
 
-        def _send_json(self, payload: dict[str, object]) -> None:
+        def _send_json(
+            self,
+            payload: dict[str, object],
+            status: HTTPStatus = HTTPStatus.OK,
+        ) -> None:
             self._send_bytes(
                 json.dumps(payload).encode("utf-8"),
                 "application/json; charset=utf-8",
+                status=status,
             )
 
         def _serve_capture(self, image_path: Path) -> None:
@@ -504,6 +586,21 @@ def build_handler(project_root: Path, port: int):
             request_path = self.path.split("?", 1)[0]
             if request_path == "/latest-image":
                 self._serve_latest_image(include_body=False)
+                return
+            self.send_error(HTTPStatus.NOT_FOUND, "Not Found")
+
+        def do_POST(self) -> None:
+            request_path = self.path.split("?", 1)[0]
+            if request_path == "/api/capture":
+                try:
+                    image = capture_from_web(project_root)
+                except Exception as exc:
+                    self._send_json(
+                        {"ok": False, "error": f"Capture failed: {exc}"},
+                        status=HTTPStatus.INTERNAL_SERVER_ERROR,
+                    )
+                    return
+                self._send_json({"ok": True, "image": image})
                 return
             self.send_error(HTTPStatus.NOT_FOUND, "Not Found")
 

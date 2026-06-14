@@ -35,6 +35,11 @@ sudo systemctl restart tiny-film-web.service tiny-film-shutter.service
 sudo systemctl status tiny-film-web.service tiny-film-shutter.service --no-pager
 ```
 
+## Take a photo through the web server
+```bash
+curl -X POST http://localhost:8000/api/capture
+```
+
 ## Follow service logs
 ```bash
 sudo journalctl -u tiny-film-web.service -u tiny-film-shutter.service -f
