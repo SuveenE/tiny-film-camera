@@ -31,3 +31,17 @@ The default image tuning matches the existing `rpicam-still` command:
 ```text
 quality=95, sharpness=0.5, contrast=0.9, saturation=0.9
 ```
+
+Run the capture browser:
+
+```bash
+python3 src/tiny-film-cam/web.py
+```
+
+The web app serves captures from `data/captures/` and exposes:
+
+- `GET /`
+- `GET /api/images`
+- `GET /download/captures/`
+- `GET /api/device-details`
+- `GET /latest-image`
