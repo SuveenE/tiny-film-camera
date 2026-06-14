@@ -18,3 +18,14 @@
    ```bash
    rpicam-still -o test.jpg
    ```
+7. Install Python helpers:
+   ```bash
+   sudo apt install -y python3-picamera2 python3-pil python3-gpiozero
+   ```
+8. Wire the shutter button between BCM GPIO 17, physical pin 11, and any GND
+   pin. With the default `.env.example` settings, the Pi uses its internal
+   pull-up resistor.
+9. Install the Tiny Film boot services:
+   ```bash
+   ./scripts/install_service.sh --enable-now
+   ```

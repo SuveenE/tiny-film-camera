@@ -19,3 +19,23 @@ python3 src/tiny-film-cam/capture.py --width 4608 --height 2592
 ```bash
 scp -r suveen@172.20.10.2:/home/suveen/tiny-film/data/captures .
 ```
+
+## Install boot services
+```bash
+./scripts/install_service.sh --enable-now
+```
+
+## Restart services
+```bash
+sudo systemctl restart tiny-film-web.service tiny-film-shutter.service
+```
+
+## Service status
+```bash
+sudo systemctl status tiny-film-web.service tiny-film-shutter.service --no-pager
+```
+
+## Follow service logs
+```bash
+sudo journalctl -u tiny-film-web.service -u tiny-film-shutter.service -f
+```
