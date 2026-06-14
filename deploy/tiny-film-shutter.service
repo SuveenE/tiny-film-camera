@@ -1,0 +1,17 @@
+[Unit]
+Description=Tiny Film shutter button
+After=local-fs.target
+
+[Service]
+Type=simple
+User=__SERVICE_USER__
+WorkingDirectory=__PROJECT_ROOT__
+EnvironmentFile=-__PROJECT_ROOT__/.env
+ExecStart=__PROJECT_ROOT__/scripts/run_shutter.sh
+Restart=on-failure
+RestartSec=3
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
