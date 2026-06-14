@@ -428,11 +428,36 @@ def render_page() -> bytes:
             display: grid;
             border-top: 1px solid var(--line);
           }
+          .metric-grid {
+            display: grid;
+            border-bottom: 1px solid var(--line);
+          }
+          .metric-grid.primary {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+          .metric-grid.secondary {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+          }
+          .metric {
+            min-width: 0;
+            padding: 13px 14px;
+            border-right: 1px solid var(--line);
+          }
+          .metric:last-child {
+            border-right: 0;
+          }
+          .metric .label {
+            font-size: 12px;
+          }
+          .metric .value {
+            font-size: 13px;
+            margin-top: 4px;
+          }
           .detail {
             display: grid;
             grid-template-columns: 140px 1fr;
             gap: 16px;
-            padding: 13px 0;
+            padding: 13px 14px;
             border-bottom: 1px solid var(--line);
           }
           .label {
@@ -459,6 +484,7 @@ def render_page() -> bytes:
             }
             .capture-stage .icon-button { margin: 0 4px; }
             .capture-info { grid-template-columns: minmax(0, 1fr) auto; }
+            .metric { padding: 13px 10px; }
             .detail { grid-template-columns: 1fr; gap: 3px; }
           }
         </style>
@@ -679,56 +705,76 @@ def render_page() -> bytes:
 
           function renderDetails(details) {
             const rows = [
-              ["Hostname", details.hostname],
-              ["IP Address", details.ip_address],
               ["App URL", details.app_url],
-              ["Captures", details.capture_count],
-              ["Latest", details.latest_capture],
               ["Storage", details.storage_status],
             ];
             deviceDetails.innerHTML = "";
             rows.forEach(([label, value]) => {
-              const row = document.createElement("div");
-              row.className = "detail";
-              const labelElement = document.createElement("div");
-              labelElement.className = "label";
-              labelElement.textContent = label;
-              const valueElement = document.createElement("div");
-              valueElement.className = "value";
-              valueElement.textContent = value === null || value === undefined || value === "" ? "Unknown" : value;
-              row.append(labelElement, valueElement);
-              deviceDetails.appendChild(row);
+              deviceDetails.appendChild(makeDetailRow(label, value));
             });
           }
 
           function renderBattery(details) {
             renderBatterySummary(details);
-            const rows = details.ok ? [
-              ["Charge", formatPercent(details.percent_remaining), details.stale],
-              ["State", titleCase(details.state), details.stale],
-              ["Voltage", formatFixed(details.load_voltage_v, 3, "V"), false],
-              ["Current", formatFixed(details.current_a, 3, "A"), false],
-              ["Power", formatFixed(details.power_w, 3, "W"), false],
-              ["Updated", formatDate(details.timestamp_unix), details.stale],
-            ] : [
+            batteryDetails.innerHTML = "";
+            if (details.ok) {
+              const primaryMetrics = [
+                ["Charge", formatPercent(details.percent_remaining), details.stale],
+                ["State", titleCase(details.state), details.stale],
+              ];
+              const secondaryMetrics = [
+                ["Voltage", formatFixed(details.load_voltage_v, 3, "V"), false],
+                ["Current", formatFixed(details.current_a, 3, "A"), false],
+                ["Power", formatFixed(details.power_w, 3, "W"), false],
+              ];
+              batteryDetails.appendChild(makeMetricGrid(primaryMetrics, "primary"));
+              batteryDetails.appendChild(makeMetricGrid(secondaryMetrics, "secondary"));
+              batteryDetails.appendChild(makeDetailRow("Updated", formatDate(details.timestamp_unix), details.stale));
+              return;
+            }
+
+            [
               ["Status", "Unavailable", true],
               ["Error", details.error, true],
               ["Updated", formatDate(details.timestamp_unix), details.stale],
-            ];
-
-            batteryDetails.innerHTML = "";
-            rows.forEach(([label, value, warning]) => {
-              const row = document.createElement("div");
-              row.className = "detail";
-              const labelElement = document.createElement("div");
-              labelElement.className = "label";
-              labelElement.textContent = label;
-              const valueElement = document.createElement("div");
-              valueElement.className = warning ? "value warning" : "value";
-              valueElement.textContent = value === null || value === undefined || value === "" ? "Unknown" : value;
-              row.append(labelElement, valueElement);
-              batteryDetails.appendChild(row);
+            ].forEach(([label, value, warning]) => {
+              batteryDetails.appendChild(makeDetailRow(label, value, warning));
             });
+          }
+
+          function makeMetricGrid(metrics, className) {
+            const metricGrid = document.createElement("div");
+            metricGrid.className = `metric-grid ${className}`;
+            metrics.forEach(([label, value, warning]) => {
+              metricGrid.appendChild(makeMetric(label, value, warning));
+            });
+            return metricGrid;
+          }
+
+          function makeMetric(label, value, warning = false) {
+            const metric = document.createElement("div");
+            metric.className = "metric";
+            const labelElement = document.createElement("div");
+            labelElement.className = "label";
+            labelElement.textContent = label;
+            const valueElement = document.createElement("div");
+            valueElement.className = warning ? "value warning" : "value";
+            valueElement.textContent = value === null || value === undefined || value === "" ? "Unknown" : value;
+            metric.append(labelElement, valueElement);
+            return metric;
+          }
+
+          function makeDetailRow(label, value, warning = false) {
+            const row = document.createElement("div");
+            row.className = "detail";
+            const labelElement = document.createElement("div");
+            labelElement.className = "label";
+            labelElement.textContent = label;
+            const valueElement = document.createElement("div");
+            valueElement.className = warning ? "value warning" : "value";
+            valueElement.textContent = value === null || value === undefined || value === "" ? "Unknown" : value;
+            row.append(labelElement, valueElement);
+            return row;
           }
 
           function renderBatterySummary(details) {
