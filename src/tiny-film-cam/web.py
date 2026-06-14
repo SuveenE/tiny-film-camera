@@ -13,6 +13,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import quote, unquote
 
+from battery import battery_status_from_cache
 from camera import (
     CameraCaptureError,
     CameraUnavailableError,
@@ -304,6 +305,10 @@ def render_page() -> bytes:
           .value {
             overflow-wrap: anywhere;
           }
+          .value.warning {
+            color: var(--accent);
+            font-weight: 600;
+          }
           @media (max-width: 640px) {
             header { padding-bottom: 42px; }
             .row { grid-template-columns: 1fr; gap: 10px; }
@@ -336,6 +341,11 @@ def render_page() -> bytes:
             <h2>Device</h2>
             <div class="details" id="device-details"></div>
           </section>
+
+          <section>
+            <h2>Battery</h2>
+            <div class="details" id="battery-details"></div>
+          </section>
         </main>
 
         <script>
@@ -343,6 +353,7 @@ def render_page() -> bytes:
           const latestFrame = document.getElementById("latest-frame");
           const captureList = document.getElementById("capture-list");
           const deviceDetails = document.getElementById("device-details");
+          const batteryDetails = document.getElementById("battery-details");
           const captureButton = document.getElementById("capture-button");
 
           function formatBytes(value) {
@@ -360,6 +371,23 @@ def render_page() -> bytes:
           function formatDate(seconds) {
             if (!seconds) return "";
             return new Date(seconds * 1000).toLocaleString();
+          }
+
+          function formatFixed(value, digits, unit) {
+            const number = Number(value);
+            if (!Number.isFinite(number)) return "";
+            return `${number.toFixed(digits)} ${unit}`;
+          }
+
+          function formatPercent(value) {
+            const number = Number(value);
+            if (!Number.isFinite(number)) return "";
+            return `${number.toFixed(1)}%`;
+          }
+
+          function titleCase(value) {
+            if (!value) return "";
+            return String(value).replace(/\\b\\w/g, (letter) => letter.toUpperCase());
           }
 
           function renderImages(images) {
@@ -424,6 +452,35 @@ def render_page() -> bytes:
             });
           }
 
+          function renderBattery(details) {
+            const rows = details.ok ? [
+              ["Charge", formatPercent(details.percent_remaining), details.stale],
+              ["State", titleCase(details.state), details.stale],
+              ["Voltage", formatFixed(details.load_voltage_v, 3, "V"), false],
+              ["Current", formatFixed(details.current_a, 3, "A"), false],
+              ["Power", formatFixed(details.power_w, 3, "W"), false],
+              ["Updated", formatDate(details.timestamp_unix), details.stale],
+            ] : [
+              ["Status", "Unavailable", true],
+              ["Error", details.error, true],
+              ["Updated", formatDate(details.timestamp_unix), details.stale],
+            ];
+
+            batteryDetails.innerHTML = "";
+            rows.forEach(([label, value, warning]) => {
+              const row = document.createElement("div");
+              row.className = "detail";
+              const labelElement = document.createElement("div");
+              labelElement.className = "label";
+              labelElement.textContent = label;
+              const valueElement = document.createElement("div");
+              valueElement.className = warning ? "value warning" : "value";
+              valueElement.textContent = value === null || value === undefined || value === "" ? "Unknown" : value;
+              row.append(labelElement, valueElement);
+              batteryDetails.appendChild(row);
+            });
+          }
+
           async function refreshImages() {
             const response = await fetch("/api/images", { cache: "no-store" });
             if (!response.ok) throw new Error("Image request failed");
@@ -435,6 +492,12 @@ def render_page() -> bytes:
             const response = await fetch("/api/device-details", { cache: "no-store" });
             if (!response.ok) throw new Error("Device request failed");
             renderDetails(await response.json());
+          }
+
+          async function refreshBattery() {
+            const response = await fetch("/api/battery", { cache: "no-store" });
+            if (!response.ok) throw new Error("Battery request failed");
+            renderBattery(await response.json());
           }
 
           async function takePhoto() {
@@ -470,8 +533,12 @@ def render_page() -> bytes:
             statusElement.textContent = "Could not load captures.";
           });
           refreshDetails().catch(() => {});
+          refreshBattery().catch(() => {
+            renderBattery({ ok: false, error: "Could not load battery details.", stale: true });
+          });
           setInterval(() => refreshImages().catch(() => {}), 5000);
           setInterval(() => refreshDetails().catch(() => {}), 5000);
+          setInterval(() => refreshBattery().catch(() => {}), 5000);
         </script>
       </body>
     </html>
@@ -562,6 +629,10 @@ def build_handler(project_root: Path, port: int):
 
             if request_path == "/api/device-details":
                 self._send_json(build_device_details(project_root, port))
+                return
+
+            if request_path == "/api/battery":
+                self._send_json(battery_status_from_cache(project_root))
                 return
 
             if request_path == "/latest-image":
