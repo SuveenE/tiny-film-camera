@@ -83,6 +83,7 @@ def build_capture_image_list(project_root: Path) -> list[dict[str, object]]:
                 "relative_path": relative_path,
                 "view_url": f"/image/captures/{quote(relative_path)}",
                 "download_url": f"/download/captures/{quote(relative_path)}",
+                "delete_url": f"/api/captures/{quote(relative_path)}",
                 "modified_unix": stat.st_mtime,
                 "size_bytes": stat.st_size,
             }
@@ -99,6 +100,7 @@ def build_capture_image(project_root: Path, image_path: Path) -> dict[str, objec
         "relative_path": relative_path,
         "view_url": f"/image/captures/{quote(relative_path)}",
         "download_url": f"/download/captures/{quote(relative_path)}",
+        "delete_url": f"/api/captures/{quote(relative_path)}",
         "modified_unix": stat.st_mtime,
         "size_bytes": stat.st_size,
     }
@@ -113,6 +115,37 @@ def capture_from_web(project_root: Path) -> dict[str, object]:
             "Capture was saved outside the configured captures directory"
         ) from exc
     return build_capture_image(project_root, output_path)
+
+
+def remove_empty_capture_dirs(project_root: Path, start: Path) -> None:
+    root = captures_root(project_root).resolve()
+    current = start.resolve()
+    while current != root:
+        try:
+            current.relative_to(root)
+        except ValueError:
+            return
+        try:
+            current.rmdir()
+        except OSError:
+            return
+        current = current.parent
+
+
+def delete_capture_image(project_root: Path, relative_path: str) -> dict[str, object] | None:
+    image_path = get_capture_image_by_relative_path(project_root, relative_path)
+    if image_path is None:
+        return None
+    root = captures_root(project_root)
+    deleted_path = image_path.relative_to(root).as_posix()
+    deleted_name = image_path.name
+    image_path.unlink()
+    remove_empty_capture_dirs(project_root, image_path.parent)
+    return {
+        "ok": True,
+        "filename": deleted_name,
+        "relative_path": deleted_path,
+    }
 
 
 def format_bytes(value: int) -> str:
@@ -372,6 +405,10 @@ def render_page() -> bytes:
             cursor: default;
             opacity: 0.35;
           }
+          .icon-button.danger {
+            border-color: var(--accent);
+            color: var(--accent);
+          }
           .details {
             display: grid;
             border-top: 1px solid var(--line);
@@ -502,6 +539,7 @@ def render_page() -> bytes:
 
           function iconSvg(name) {
             const icons = {
+              delete: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path></svg>',
               download: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="M7 10l5 5 5-5"></path><path d="M12 15V3"></path></svg>',
               next: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>',
               previous: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg>',
@@ -525,6 +563,11 @@ def render_page() -> bytes:
             if (index < 0 || index >= captureImages.length) return;
             selectedCaptureIndex = index;
             renderCaptureBrowser();
+          }
+
+          function clampCaptureIndex(index, images) {
+            if (!images.length) return 0;
+            return Math.max(0, Math.min(index, images.length - 1));
           }
 
           function renderCaptureBrowser() {
@@ -578,7 +621,12 @@ def render_page() -> bytes:
             const downloadLink = makeIconButton("a", "download", `Download ${image.filename || "capture"}`);
             downloadLink.href = image.download_url;
             downloadLink.download = image.filename || "capture.jpg";
-            controls.appendChild(downloadLink);
+            const deleteButton = makeIconButton("button", "delete", `Delete ${image.filename || "capture"}`);
+            deleteButton.classList.add("danger");
+            deleteButton.addEventListener("click", () => {
+              deleteCapture(image);
+            });
+            controls.append(downloadLink, deleteButton);
 
             info.append(text, controls);
             captureBrowser.append(stage, info);
@@ -588,16 +636,17 @@ def render_page() -> bytes:
             const previousSelection = captureImages[selectedCaptureIndex];
             const previousPath = previousSelection && previousSelection.relative_path;
             captureImages = images;
-            if (options.selectLatest) {
+            if (Number.isFinite(options.selectedIndex)) {
+              selectedCaptureIndex = clampCaptureIndex(options.selectedIndex, captureImages);
+            } else if (options.selectLatest) {
               selectedCaptureIndex = 0;
             } else {
               const preservedIndex = previousPath
                 ? captureImages.findIndex((image) => image.relative_path === previousPath)
                 : selectedCaptureIndex;
               selectedCaptureIndex = preservedIndex >= 0
-                ? Math.min(preservedIndex, captureImages.length - 1)
+                ? clampCaptureIndex(preservedIndex, captureImages)
                 : 0;
-              if (selectedCaptureIndex < 0) selectedCaptureIndex = 0;
             }
 
             statusElement.textContent = `${images.length} capture${images.length === 1 ? "" : "s"}`;
@@ -681,6 +730,31 @@ def render_page() -> bytes:
             if (!response.ok) throw new Error("Image request failed");
             const data = await response.json();
             renderImages(data.images || [], options);
+          }
+
+          async function deleteCapture(image) {
+            if (!image || !image.delete_url) return;
+            const name = image.relative_path || image.filename || "this capture";
+            if (!window.confirm(`Delete ${name}?`)) return;
+
+            const deleteIndex = selectedCaptureIndex;
+            statusElement.textContent = `Deleting ${name}...`;
+            try {
+              const response = await fetch(image.delete_url, {
+                method: "DELETE",
+                cache: "no-store",
+              });
+              const data = await response.json().catch(() => ({}));
+              if (!response.ok) {
+                throw new Error(data.error || "Delete failed");
+              }
+              const nextIndex = Math.min(deleteIndex, Math.max(0, captureImages.length - 2));
+              await refreshImages({ selectedIndex: nextIndex });
+              await refreshDetails();
+              statusElement.textContent = `Deleted ${name}`;
+            } catch (error) {
+              statusElement.textContent = error instanceof Error ? error.message : "Delete failed";
+            }
           }
 
           async function refreshDetails() {
@@ -888,6 +962,28 @@ def build_handler(project_root: Path, port: int):
                     )
                     return
                 self._send_json({"ok": True, "image": image})
+                return
+            self.send_error(HTTPStatus.NOT_FOUND, "Not Found")
+
+        def do_DELETE(self) -> None:
+            request_path = self.path.split("?", 1)[0]
+            if request_path.startswith("/api/captures/"):
+                relative_path = request_path[len("/api/captures/") :]
+                try:
+                    deleted = delete_capture_image(project_root, relative_path)
+                except OSError as exc:
+                    self._send_json(
+                        {"ok": False, "error": f"Delete failed: {exc}"},
+                        status=HTTPStatus.INTERNAL_SERVER_ERROR,
+                    )
+                    return
+                if deleted is None:
+                    self._send_json(
+                        {"ok": False, "error": "Capture not found"},
+                        status=HTTPStatus.NOT_FOUND,
+                    )
+                    return
+                self._send_json(deleted)
                 return
             self.send_error(HTTPStatus.NOT_FOUND, "Not Found")
 

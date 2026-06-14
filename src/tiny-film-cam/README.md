@@ -43,6 +43,7 @@ The web app serves captures from `data/captures/` and exposes:
 - `GET /`
 - `GET /api/images`
 - `POST /api/capture`
+- `DELETE /api/captures/<capture-path>`
 - `GET /image/captures/<capture-path>`
 - `GET /download/captures/<capture-path>`
 - `GET /api/device-details`
