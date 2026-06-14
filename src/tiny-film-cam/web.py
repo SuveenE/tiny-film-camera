@@ -446,11 +446,7 @@ def render_page() -> bytes:
           .metric:last-child {
             border-right: 0;
           }
-          .metric .label {
-            font-size: 12px;
-          }
           .metric .value {
-            font-size: 13px;
             margin-top: 4px;
           }
           .detail {
@@ -462,9 +458,10 @@ def render_page() -> bytes:
           }
           .label {
             color: var(--muted);
-            font-size: 14px;
+            font-size: 12px;
           }
           .value {
+            font-size: 13px;
             overflow-wrap: anywhere;
           }
           .value.warning {
