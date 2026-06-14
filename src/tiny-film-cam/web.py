@@ -232,7 +232,7 @@ def render_page() -> bytes:
             font-weight: 650;
             letter-spacing: 0;
           }
-          h2 { font-size: 28px; line-height: 1.1; font-weight: 650; letter-spacing: 0; }
+          h2 { font-size: 22px; line-height: 1.1; font-weight: 650; letter-spacing: 0; }
           section {
             border-top: 1px solid var(--line);
             padding: 18px 0 34px;
@@ -240,6 +240,18 @@ def render_page() -> bytes:
           .status {
             color: var(--muted);
             font-size: 14px;
+          }
+          .visually-hidden {
+            border: 0;
+            clip: rect(0 0 0 0);
+            clip-path: inset(50%);
+            height: 1px;
+            margin: -1px;
+            overflow: hidden;
+            padding: 0;
+            position: absolute;
+            white-space: nowrap;
+            width: 1px;
           }
           .latest {
             display: grid;
@@ -336,6 +348,9 @@ def render_page() -> bytes:
             justify-content: space-between;
             gap: 16px;
             margin-bottom: 14px;
+          }
+          .latest .section-heading {
+            margin-bottom: 0;
           }
           .capture-browser {
             display: grid;
@@ -450,6 +465,7 @@ def render_page() -> bytes:
       </head>
       <body>
         <main>
+          <p class="status visually-hidden" id="status" aria-live="polite">Checking captures...</p>
           <header>
             <h1>Suv's Tiny Film Camera</h1>
             <div class="battery-summary" id="battery-summary" aria-label="Battery unavailable" title="Battery unavailable">
@@ -467,7 +483,6 @@ def render_page() -> bytes:
               <h2>Latest</h2>
               <button class="button primary" id="capture-button" type="button">Take Photo</button>
             </div>
-            <p class="status" id="status">Checking captures...</p>
             <div class="latest-frame" id="latest-frame"></div>
           </section>
 
@@ -480,13 +495,13 @@ def render_page() -> bytes:
           </section>
 
           <section>
-            <h2>Device</h2>
-            <div class="details" id="device-details"></div>
+            <h2>Battery</h2>
+            <div class="details" id="battery-details"></div>
           </section>
 
           <section>
-            <h2>Battery</h2>
-            <div class="details" id="battery-details"></div>
+            <h2>Device</h2>
+            <div class="details" id="device-details"></div>
           </section>
         </main>
 
