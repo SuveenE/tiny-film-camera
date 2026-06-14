@@ -26,11 +26,39 @@ For a Camera Module 3 full-size still, pass an explicit size:
 python3 src/tiny-film-cam/capture.py --width 4608 --height 2592
 ```
 
-The default image tuning matches the existing `rpicam-still` command:
+The default image tuning is set for a film-friendly source capture:
 
 ```text
-quality=95, sharpness=0.5, contrast=0.9, saturation=0.9
+quality=95, sharpness=0.3, contrast=0.85, saturation=0.9,
+ev=-0.7, awb_mode=daylight, rotation=270
 ```
+
+For a more film-friendly source capture, protect highlights and reduce digital
+edge bite:
+
+```bash
+python3 src/tiny-film-cam/capture.py \
+  --width 4608 \
+  --height 2592 \
+  --sharpness 0.3 \
+  --contrast 0.85 \
+  --saturation 0.9 \
+  --ev -0.7 \
+  --awb-mode daylight \
+  --rotation 270
+```
+
+To capture multiple exposure candidates from one warmed-up camera session:
+
+```bash
+python3 src/tiny-film-cam/capture.py \
+  --output photo1.jpg \
+  --exposure-brackets 0,-0.7,-1.0 \
+  --awb-lock
+```
+
+Bracketed filenames include the EV value, such as
+`photo1_ev+0p0.jpg`, `photo1_ev-0p7.jpg`, and `photo1_ev-1p0.jpg`.
 
 Run the capture browser:
 

@@ -54,3 +54,23 @@ while the HAT is plugged into USB power.
 
 To change the button pin or capture settings, copy `.env.example` to `.env` and
 edit the `TINY_FILM_*` values.
+
+For a more film-friendly source capture, start by testing:
+
+```bash
+python3 src/tiny-film-cam/capture.py \
+  --sharpness 0.3 \
+  --contrast 0.85 \
+  --saturation 0.9 \
+  --ev -0.7 \
+  --awb-mode daylight \
+  --rotation 270
+```
+
+For highlight safety, capture a bracket from one warmed-up camera session:
+
+```bash
+python3 src/tiny-film-cam/capture.py \
+  --exposure-brackets 0,-0.7,-1.0 \
+  --awb-lock
+```
