@@ -70,3 +70,8 @@ curl http://localhost:8000/api/battery
 ```bash
 sudo journalctl -u tiny-film-web.service -u tiny-film-shutter.service -u tiny-film-battery.service -f
 ```
+
+## Apply an FCP-style look to an image
+```bash
+python3 src/tiny-film-cam/fcp_styles.py images/IMG_8025.jpg images --style claude_levels --compare
+```
