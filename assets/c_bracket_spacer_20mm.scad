@@ -9,7 +9,8 @@ pad_len = 6.5;      // Pad length (X axis)
 pad_w = 6.5;        // Pad width (Z axis, extruded thickness)
 pad_t = 1.5;        // Pad thickness (Y axis)
 wall = 2.0;         // Wall thickness
-hole_d = 2.8;       // M2.5 screw clearance
+hole_d_bottom = 2.1; // Bottom pad hole
+hole_d_top = 2.8;    // Top pad hole (M2.5 screw clearance)
 
 r_out = 2.0;        // Outer corner rounding
 r_in = 1.0;         // Inner corner rounding
@@ -47,10 +48,10 @@ difference() {
     // 2. Center-Punch Bottom Pad Hole
     translate([pad_len / 2, pad_t / 2, pad_w / 2])
         rotate([90, 0, 0])
-        cylinder(h = pad_t * 4, d = hole_d, center = true);
+        cylinder(h = pad_t * 4, d = hole_d_bottom, center = true);
 
     // 3. Center-Punch Top Pad Hole
     translate([pad_len / 2, total_h - (pad_t / 2), pad_w / 2])
         rotate([90, 0, 0])
-        cylinder(h = pad_t * 4, d = hole_d, center = true);
+        cylinder(h = pad_t * 4, d = hole_d_top, center = true);
 }
