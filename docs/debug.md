@@ -19,17 +19,18 @@ Expected: at least one camera is listed.
 If no camera appears, power down safely, reseat the camera ribbon, check the
 ribbon orientation, boot again, and rerun the check before testing the web app.
 
-## RPyConnect Not Detecting Pi
+## Pi Not Reachable Over the Network
 
-If RPyConnect stops working and isn't detecting the Pi, it's hard to tell when
-the Pi is back online. Fall back to SSH to check directly:
+If a remote tool or SSH client stops finding the Pi, check connectivity
+directly:
 
 ```bash
-ssh suveen@172.20.10.2
+ping <pi-ip>
+ssh <pi-user>@<pi-ip>
 ```
 
-If SSH itself is refused, make sure the SSH service is enabled and running on
-the Pi (one-time setup, requires a keyboard/monitor or another way in):
+If SSH is refused, make sure the SSH service is enabled and running on the Pi
+(one-time setup; needs a keyboard/monitor or another way in):
 
 ```bash
 sudo systemctl enable --now ssh

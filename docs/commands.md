@@ -38,7 +38,7 @@ python3 src/tiny-film-cam/capture.py --width 4608 --height 2592
 
 ## Transfer photos to local machine
 ```bash
-scp -r suveen@172.20.10.2:/home/suveen/tiny-film/data/captures .
+scp -r <pi-user>@<pi-ip>:/home/<pi-user>/tiny-film/data/captures .
 ```
 
 ## Install boot services
@@ -69,9 +69,4 @@ curl http://localhost:8000/api/battery
 ## Follow service logs
 ```bash
 sudo journalctl -u tiny-film-web.service -u tiny-film-shutter.service -u tiny-film-battery.service -f
-```
-
-## Apply an FCP-style look to an image
-```bash
-python3 src/tiny-film-cam/fcp_styles.py images/IMG_8025.jpg images --style claude_levels --compare
 ```
