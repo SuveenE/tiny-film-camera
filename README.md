@@ -1,5 +1,7 @@
 # tiny-film
 
+![v0 build of the tiny-film camera](assets/v0/v0-build.jpg)
+
 My own digital film camera.
 
 Code and original CAD in this repo are [MIT](LICENSE). Third-party Printables
