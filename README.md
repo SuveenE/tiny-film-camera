@@ -1,6 +1,6 @@
 # tiny-film
 
-![v0 build of the tiny-film camera](assets/v0/v0-build.jpg)
+<img src="assets/v0/v0-build.jpg" alt="v0 build of the tiny-film camera" width="280" />
 
 My own digital film camera.
 
