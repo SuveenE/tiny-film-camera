@@ -30,7 +30,7 @@ The default image tuning is set for a film-friendly source capture:
 
 ```text
 quality=95, sharpness=0.3, contrast=0.85, saturation=0.9,
-ev=-0.7, awb_mode=daylight, rotation=0
+ev=-0.7, awb_mode=daylight, rotation=180
 ```
 
 For a more film-friendly source capture, protect highlights and reduce digital
@@ -45,7 +45,7 @@ python3 src/tiny-film-cam/capture.py \
   --saturation 0.9 \
   --ev -0.7 \
   --awb-mode daylight \
-  --rotation 0
+  --rotation 180
 ```
 
 To capture multiple exposure candidates from one warmed-up camera session:
