@@ -70,7 +70,7 @@ python3 src/tiny-film-cam/capture.py \
   --saturation 0.9 \
   --ev -0.7 \
   --awb-mode daylight \
-  --rotation 270
+  --rotation 0
 ```
 
 For highlight safety, capture a bracket from one warmed-up camera session:
