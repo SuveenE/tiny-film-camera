@@ -1,7 +1,10 @@
 images/
 .DS_Store
 .env
+*.pem
+.venv/
 **/__pycache__/
 **/*.pyc
 
 data/captures/
+data/battery.json
