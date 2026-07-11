@@ -2,6 +2,10 @@
 
 My own digital film camera.
 
+Code and original CAD in this repo are [MIT](LICENSE). Third-party Printables
+case STLs keep their upstream Creative Commons licenses — see
+[assets/README.md](assets/README.md).
+
 ## Phone web app
 
 Run the local capture browser from the project root:
