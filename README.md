@@ -1,12 +1,8 @@
-# tiny-film
+# tiny-film-camera
 
-<img src="assets/v0/v0-build.jpg" alt="v0 build of the tiny-film camera" width="280" />
+<img src="assets/v0/v0-build.jpg" alt="V0 build of the tiny-film camera" width="280" />
 
-My own digital film camera.
-
-Code and original CAD in this repo are [MIT](LICENSE). Third-party Printables
-case STLs keep their upstream Creative Commons licenses — see
-[assets/README.md](assets/README.md).
+v0 build
 
 ## Phone web app
 
@@ -80,3 +76,9 @@ python3 src/tiny-film-cam/capture.py \
   --exposure-brackets 0,-0.7,-1.0 \
   --awb-lock
 ```
+
+## License
+
+Code and original CAD in this repo are [MIT](LICENSE). Third-party Printables
+case STLs keep their upstream Creative Commons licenses — see
+[assets/README.md](assets/README.md).
