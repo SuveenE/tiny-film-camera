@@ -29,6 +29,15 @@ ping <pi-ip>
 ssh <pi-user>@<pi-ip>
 ```
 
+Example (Pi over phone hotspot):
+```bash
+ping 172.20.10.2
+ssh suveen@172.20.10.2
+```
+
+The `172.20.10.x` range is what a phone hotspot typically hands out, so this
+address can change between hotspot sessions.
+
 If SSH is refused, make sure the SSH service is enabled and running on the Pi
 (one-time setup; needs a keyboard/monitor or another way in):
 

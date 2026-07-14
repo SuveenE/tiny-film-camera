@@ -41,6 +41,11 @@ python3 src/tiny-film-cam/capture.py --width 4608 --height 2592
 scp -r <pi-user>@<pi-ip>:/home/<pi-user>/tiny-film/data/captures .
 ```
 
+Example (Pi over phone hotspot):
+```bash
+scp -r suveen@172.20.10.2:/home/suveen/tiny-film/data/captures .
+```
+
 ## Install boot services
 ```bash
 ./scripts/install_service.sh --enable-now
