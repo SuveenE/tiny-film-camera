@@ -7,6 +7,7 @@ import signal
 import threading
 from pathlib import Path
 
+from buzzer import ShutterBuzzer
 from camera import (
     AWB_MODES,
     CaptureSettings,
@@ -30,6 +31,13 @@ def env_int(name: str, default: int) -> int:
     value = os.environ.get(name)
     if value is None or value.strip() == "":
         return default
+    return int(value)
+
+
+def env_optional_int(name: str) -> int | None:
+    value = os.environ.get(name)
+    if value is None or value.strip() == "":
+        return None
     return int(value)
 
 
@@ -63,6 +71,25 @@ def parse_args() -> argparse.Namespace:
         "--bounce-time",
         type=float,
         default=env_float("TINY_FILM_BUTTON_BOUNCE_SECONDS", 0.15),
+    )
+    parser.add_argument(
+        "--buzzer-pin",
+        type=int,
+        default=env_optional_int("TINY_FILM_BUZZER_PIN"),
+        help="BCM GPIO pin for an optional feedback buzzer. Omit to disable.",
+    )
+    parser.set_defaults(buzzer_active=env_bool("TINY_FILM_BUZZER_ACTIVE", True))
+    parser.add_argument(
+        "--buzzer-active",
+        dest="buzzer_active",
+        action="store_true",
+        help="Treat the buzzer as an active buzzer (simple on/off tone).",
+    )
+    parser.add_argument(
+        "--buzzer-passive",
+        dest="buzzer_active",
+        action="store_false",
+        help="Treat the buzzer as a passive buzzer driven with PWM tones.",
     )
     parser.add_argument(
         "--output-dir",
@@ -155,6 +182,7 @@ def main() -> None:
     output_dir = resolve_project_path(project_root, args.output_dir)
     capture_lock = threading.Lock()
     stop_event = threading.Event()
+    buzzer = ShutterBuzzer(args.buzzer_pin, active=args.buzzer_active)
 
     try:
         from gpiozero import Button
@@ -195,8 +223,10 @@ def main() -> None:
             )
             output_paths = capture_photos(settings)
             LOGGER.info("Saved %s photo(s): %s", len(output_paths), output_paths)
+            buzzer.success()
         except Exception:
             LOGGER.exception("Capture failed")
+            buzzer.error()
         finally:
             capture_lock.release()
 
@@ -213,12 +243,18 @@ def main() -> None:
     wiring = "GPIO-to-GND with pull-up" if args.pull_up else "GPIO-to-3V3 with pull-down"
     LOGGER.info("Tiny Film shutter ready on BCM GPIO %s (%s)", args.pin, wiring)
     LOGGER.info("Captures will be saved under %s", output_dir)
+    if buzzer.enabled:
+        buzzer_kind = "active" if args.buzzer_active else "passive"
+        LOGGER.info(
+            "Buzzer feedback on BCM GPIO %s (%s)", args.buzzer_pin, buzzer_kind
+        )
 
     try:
         while not stop_event.wait(1.0):
             pass
     finally:
         button.close()
+        buzzer.close()
 
 
 if __name__ == "__main__":
