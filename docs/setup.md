@@ -34,7 +34,9 @@
 10. Wire the shutter button between BCM GPIO 17, physical pin 11, and any GND
    pin. With the default `.env.example` settings, the Pi uses its internal
    pull-up resistor.
-11. Install the Tiny Film boot services:
+11. (Optional) Wire a feedback buzzer so the camera chirps on capture. See
+   [buzzer.md](buzzer.md) for wiring and how to enable it.
+12. Install the Tiny Film boot services:
    ```bash
    ./scripts/install_service.sh --enable-now
    ```
