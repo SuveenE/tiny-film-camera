@@ -18,9 +18,13 @@
    ```bash
    rpicam-still -o test.jpg
    ```
-7. Install Python helpers:
+   Or record a short test clip:
    ```bash
-   sudo apt install -y python3-picamera2 python3-pil python3-gpiozero python3-smbus i2c-tools
+   rpicam-vid -t 5000 -o test.mp4
+   ```
+7. Install Python helpers (`ffmpeg` is required for MP4 video recording):
+   ```bash
+   sudo apt install -y python3-picamera2 python3-pil python3-gpiozero python3-smbus i2c-tools ffmpeg
    ```
 8. Enable I2C for the Waveshare UPS HAT (C):
    ```bash

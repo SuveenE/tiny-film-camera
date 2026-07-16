@@ -18,10 +18,18 @@ from camera import (
     capture_output_dir_from_env,
     capture_photo,
     capture_settings_from_env,
+    record_video,
+    video_settings_from_env,
 )
 
 
-CAPTURE_SUFFIXES = {".jpg", ".jpeg", ".png", ".webp"}
+IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".webp"}
+VIDEO_SUFFIXES = {".mp4"}
+CAPTURE_SUFFIXES = IMAGE_SUFFIXES | VIDEO_SUFFIXES
+
+
+def media_type_for(path: Path) -> str:
+    return "video" if path.suffix.lower() in VIDEO_SUFFIXES else "image"
 
 
 def default_project_root() -> Path:
@@ -81,6 +89,7 @@ def build_capture_image_list(project_root: Path) -> list[dict[str, object]]:
             {
                 "filename": image_path.name,
                 "relative_path": relative_path,
+                "media_type": media_type_for(image_path),
                 "view_url": f"/image/captures/{quote(relative_path)}",
                 "download_url": f"/download/captures/{quote(relative_path)}",
                 "delete_url": f"/api/captures/{quote(relative_path)}",
@@ -98,6 +107,7 @@ def build_capture_image(project_root: Path, image_path: Path) -> dict[str, objec
     return {
         "filename": image_path.name,
         "relative_path": relative_path,
+        "media_type": media_type_for(image_path),
         "view_url": f"/image/captures/{quote(relative_path)}",
         "download_url": f"/download/captures/{quote(relative_path)}",
         "delete_url": f"/api/captures/{quote(relative_path)}",
@@ -113,6 +123,17 @@ def capture_from_web(project_root: Path) -> dict[str, object]:
     except ValueError as exc:
         raise RuntimeError(
             "Capture was saved outside the configured captures directory"
+        ) from exc
+    return build_capture_image(project_root, output_path)
+
+
+def record_from_web(project_root: Path) -> dict[str, object]:
+    output_path = record_video(video_settings_from_env(project_root))
+    try:
+        output_path.relative_to(captures_root(project_root))
+    except ValueError as exc:
+        raise RuntimeError(
+            "Recording was saved outside the configured captures directory"
         ) from exc
     return build_capture_image(project_root, output_path)
 
@@ -265,7 +286,8 @@ def render_page() -> bytes:
             place-items: center;
             overflow: hidden;
           }
-          .latest-frame img {
+          .latest-frame img,
+          .latest-frame video {
             display: block;
             width: 100%;
             max-height: 64vh;
@@ -365,7 +387,8 @@ def render_page() -> bytes:
             align-items: center;
             overflow: hidden;
           }
-          .capture-stage img {
+          .capture-stage img,
+          .capture-stage video {
             display: block;
             width: 100%;
             max-height: 62vh;
@@ -504,7 +527,10 @@ def render_page() -> bytes:
           <section class="latest">
             <div class="section-heading">
               <h2>Latest</h2>
-              <button class="button primary" id="capture-button" type="button">Take Photo</button>
+              <div class="actions">
+                <button class="button" id="record-button" type="button">Record 10s</button>
+                <button class="button primary" id="capture-button" type="button">Take Photo</button>
+              </div>
             </div>
             <div class="latest-frame" id="latest-frame"></div>
           </section>
@@ -538,6 +564,7 @@ def render_page() -> bytes:
           const batterySummary = document.getElementById("battery-summary");
           const batterySummaryPercent = document.getElementById("battery-summary-percent");
           const captureButton = document.getElementById("capture-button");
+          const recordButton = document.getElementById("record-button");
           let captureImages = [];
           let selectedCaptureIndex = 0;
 
@@ -629,9 +656,19 @@ def render_page() -> bytes:
               selectCapture(selectedCaptureIndex - 1);
             });
 
-            const preview = document.createElement("img");
-            preview.src = `${viewUrl}?v=${encodeURIComponent(image.modified_unix || "")}`;
-            preview.alt = image.filename || "Capture";
+            const previewSrc = `${viewUrl}?v=${encodeURIComponent(image.modified_unix || "")}`;
+            let preview;
+            if (image.media_type === "video") {
+              preview = document.createElement("video");
+              preview.src = previewSrc;
+              preview.controls = true;
+              preview.playsInline = true;
+              preview.preload = "metadata";
+            } else {
+              preview = document.createElement("img");
+              preview.src = previewSrc;
+              preview.alt = image.filename || "Capture";
+            }
 
             const nextButton = makeIconButton("button", "next", "Next capture");
             nextButton.disabled = selectedCaptureIndex === captureImages.length - 1;
@@ -690,10 +727,21 @@ def render_page() -> bytes:
             statusElement.textContent = `${images.length} capture${images.length === 1 ? "" : "s"}`;
             latestFrame.innerHTML = "";
             if (images.length) {
-              const image = document.createElement("img");
-              image.src = `/latest-image?v=${encodeURIComponent(images[0].modified_unix)}`;
-              image.alt = images[0].filename || "Latest capture";
-              latestFrame.appendChild(image);
+              const latest = images[0];
+              const cacheBust = encodeURIComponent(latest.modified_unix || "");
+              if (latest.media_type === "video") {
+                const video = document.createElement("video");
+                video.src = `${latest.view_url}?v=${cacheBust}`;
+                video.controls = true;
+                video.playsInline = true;
+                video.preload = "metadata";
+                latestFrame.appendChild(video);
+              } else {
+                const image = document.createElement("img");
+                image.src = `/latest-image?v=${cacheBust}`;
+                image.alt = latest.filename || "Latest capture";
+                latestFrame.appendChild(image);
+              }
             } else {
               latestFrame.innerHTML = '<div class="empty">No captures yet.</div>';
             }
@@ -829,7 +877,9 @@ def render_page() -> bytes:
 
           async function takePhoto() {
             if (captureButton.disabled) return;
+            const wasRecordDisabled = recordButton.disabled;
             captureButton.disabled = true;
+            recordButton.disabled = true;
             captureButton.textContent = "Taking...";
             statusElement.textContent = "Taking photo...";
             try {
@@ -849,12 +899,45 @@ def render_page() -> bytes:
               statusElement.textContent = error instanceof Error ? error.message : "Capture failed";
             } finally {
               captureButton.disabled = false;
+              recordButton.disabled = wasRecordDisabled;
               captureButton.textContent = "Take Photo";
+            }
+          }
+
+          async function recordVideo() {
+            if (recordButton.disabled) return;
+            const wasCaptureDisabled = captureButton.disabled;
+            recordButton.disabled = true;
+            captureButton.disabled = true;
+            recordButton.textContent = "Recording...";
+            statusElement.textContent = "Recording video...";
+            try {
+              const response = await fetch("/api/record", {
+                method: "POST",
+                cache: "no-store",
+              });
+              const data = await response.json().catch(() => ({}));
+              if (!response.ok) {
+                throw new Error(data.error || "Recording failed");
+              }
+              await refreshImages({ selectLatest: true });
+              await refreshDetails();
+              const savedPath = data.image && data.image.relative_path ? data.image.relative_path : "video";
+              statusElement.textContent = `Saved ${savedPath}`;
+            } catch (error) {
+              statusElement.textContent = error instanceof Error ? error.message : "Recording failed";
+            } finally {
+              recordButton.disabled = false;
+              captureButton.disabled = wasCaptureDisabled;
+              recordButton.textContent = "Record 10s";
             }
           }
 
           captureButton.addEventListener("click", () => {
             takePhoto();
+          });
+          recordButton.addEventListener("click", () => {
+            recordVideo();
           });
           refreshImages().catch(() => {
             statusElement.textContent = "Could not load captures.";
@@ -1020,6 +1103,29 @@ def build_handler(project_root: Path, port: int):
                     )
                     return
                 self._send_json({"ok": True, "image": image})
+                return
+            if request_path == "/api/record":
+                try:
+                    media = record_from_web(project_root)
+                except CameraUnavailableError as exc:
+                    self._send_json(
+                        {"ok": False, "error": f"Recording failed: {exc}"},
+                        status=HTTPStatus.SERVICE_UNAVAILABLE,
+                    )
+                    return
+                except CameraCaptureError as exc:
+                    self._send_json(
+                        {"ok": False, "error": f"Recording failed: {exc}"},
+                        status=HTTPStatus.INTERNAL_SERVER_ERROR,
+                    )
+                    return
+                except Exception as exc:
+                    self._send_json(
+                        {"ok": False, "error": f"Recording failed: {exc}"},
+                        status=HTTPStatus.INTERNAL_SERVER_ERROR,
+                    )
+                    return
+                self._send_json({"ok": True, "image": media})
                 return
             self.send_error(HTTPStatus.NOT_FOUND, "Not Found")
 

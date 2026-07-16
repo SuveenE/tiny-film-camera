@@ -10,9 +10,12 @@ from pathlib import Path
 from camera import (
     AWB_MODES,
     CaptureSettings,
+    VideoSettings,
     capture_photos,
     capture_settings_from_env,
+    record_video,
     resolve_project_path,
+    video_settings_from_env,
 )
 
 
@@ -51,6 +54,7 @@ def default_project_root() -> Path:
 def parse_args() -> argparse.Namespace:
     project_root = default_project_root().expanduser().resolve()
     capture_defaults = capture_settings_from_env(project_root)
+    video_defaults = video_settings_from_env(project_root)
     parser = argparse.ArgumentParser(
         description="Run the Tiny Film physical shutter button listener."
     )
@@ -64,6 +68,21 @@ def parse_args() -> argparse.Namespace:
         type=float,
         default=env_float("TINY_FILM_BUTTON_BOUNCE_SECONDS", 0.15),
     )
+    parser.add_argument(
+        "--hold-time",
+        type=float,
+        default=1.0,
+        help="Seconds to hold the button before it records a video instead of a photo.",
+    )
+    parser.add_argument(
+        "--video-duration",
+        type=float,
+        default=video_defaults.duration_seconds,
+        help="Length in seconds of a held-button video clip.",
+    )
+    parser.add_argument("--video-width", type=int, default=video_defaults.width)
+    parser.add_argument("--video-height", type=int, default=video_defaults.height)
+    parser.add_argument("--video-fps", type=int, default=video_defaults.fps)
     parser.add_argument(
         "--output-dir",
         default=str(capture_defaults.output_dir),
@@ -155,6 +174,7 @@ def main() -> None:
     output_dir = resolve_project_path(project_root, args.output_dir)
     capture_lock = threading.Lock()
     stop_event = threading.Event()
+    held_flag = threading.Event()
 
     try:
         from gpiozero import Button
@@ -200,6 +220,45 @@ def main() -> None:
         finally:
             capture_lock.release()
 
+    def record_clip() -> None:
+        held_flag.set()
+        if not capture_lock.acquire(blocking=False):
+            LOGGER.info("Ignored button hold because a capture is already running")
+            return
+
+        try:
+            LOGGER.info("Button held; recording %.1fs video", args.video_duration)
+            settings = VideoSettings(
+                output_dir=output_dir,
+                width=args.video_width,
+                height=args.video_height,
+                fps=args.video_fps,
+                duration_seconds=args.video_duration,
+                sharpness=args.sharpness,
+                contrast=args.contrast,
+                saturation=args.saturation,
+                exposure_value=args.ev,
+                rotation=args.rotation,
+                warmup_seconds=args.warmup_seconds,
+                focus_mode=args.focus_mode,
+                lens_position=args.lens_position,
+                awb_mode=args.awb_mode,
+                awb_lock=args.awb_lock,
+            )
+            output_path = record_video(settings)
+            LOGGER.info("Saved video: %s", output_path)
+        except Exception:
+            LOGGER.exception("Recording failed")
+        finally:
+            capture_lock.release()
+
+    def on_release() -> None:
+        # A long hold already triggered a video via when_held; skip the photo.
+        if held_flag.is_set():
+            held_flag.clear()
+            return
+        take_photo()
+
     signal.signal(signal.SIGINT, request_stop)
     signal.signal(signal.SIGTERM, request_stop)
 
@@ -207,11 +266,18 @@ def main() -> None:
         args.pin,
         pull_up=args.pull_up,
         bounce_time=args.bounce_time if args.bounce_time > 0 else None,
+        hold_time=args.hold_time if args.hold_time > 0 else 1.0,
     )
-    button.when_pressed = take_photo
+    button.when_held = record_clip
+    button.when_released = on_release
 
     wiring = "GPIO-to-GND with pull-up" if args.pull_up else "GPIO-to-3V3 with pull-down"
     LOGGER.info("Tiny Film shutter ready on BCM GPIO %s (%s)", args.pin, wiring)
+    LOGGER.info(
+        "Tap to photograph; hold %.1fs to record a %.1fs video",
+        args.hold_time,
+        args.video_duration,
+    )
     LOGGER.info("Captures will be saved under %s", output_dir)
 
     try:
