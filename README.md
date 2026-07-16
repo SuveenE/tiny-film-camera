@@ -13,7 +13,8 @@ python3 src/tiny-film-cam/web.py
 ```
 
 Then open `http://<pi-ip>:8000` from a phone on the same Wi-Fi network.
-Tap **Take Photo** to capture from the phone.
+Tap **Take Photo** to capture a still, or **Record 10s** to capture a short
+video clip. Both appear in the gallery below.
 
 ## Boot services
 
@@ -45,8 +46,10 @@ sudo journalctl -u tiny-film-web.service -u tiny-film-shutter.service -u tiny-fi
 
 The web service starts the phone app on port `8000`. The phone app and shutter
 service both save captures to `data/captures/`. The shutter service listens for
-a simple physical button on BCM GPIO 17 by default. Wire the button between BCM
-GPIO 17, physical pin 11, and any GND pin.
+a simple physical button on BCM GPIO 17 by default: tap it for a photo, or hold
+it to record a short video. Wire the button between BCM GPIO 17, physical pin 11,
+and any GND pin. Video recording (web, CLI, or shutter) needs `ffmpeg` installed
+on the Pi.
 
 The battery service polls the Waveshare UPS HAT (C) over I2C at address `0x43`
 and writes `data/battery.json`. The web app exposes the latest reading at

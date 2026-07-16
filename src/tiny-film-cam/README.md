@@ -60,6 +60,16 @@ python3 src/tiny-film-cam/capture.py \
 Bracketed filenames include the EV value, such as
 `photo1_ev+0p0.jpg`, `photo1_ev-0p7.jpg`, and `photo1_ev-1p0.jpg`.
 
+Record a short video (H.264/MP4, 10s by default) into the same
+`data/captures/YYYY-MM-DD/` tree:
+
+```bash
+python3 src/tiny-film-cam/record.py --duration 10
+```
+
+Video recording requires `ffmpeg` on the Pi (`sudo apt install ffmpeg`) and only
+supports rotation 0 or 180.
+
 Run the capture browser:
 
 ```bash
@@ -71,6 +81,7 @@ The web app serves captures from `data/captures/` and exposes:
 - `GET /`
 - `GET /api/images`
 - `POST /api/capture`
+- `POST /api/record`
 - `DELETE /api/captures/<capture-path>`
 - `GET /image/captures/<capture-path>`
 - `GET /download/captures/<capture-path>`

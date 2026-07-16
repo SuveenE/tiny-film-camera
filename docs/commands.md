@@ -36,6 +36,16 @@ python3 src/tiny-film-cam/capture.py
 python3 src/tiny-film-cam/capture.py --width 4608 --height 2592
 ```
 
+## Record a short video (10s default)
+```bash
+python3 src/tiny-film-cam/record.py
+```
+
+## Record a custom-length video
+```bash
+python3 src/tiny-film-cam/record.py --duration 5 --width 1920 --height 1080 --fps 30
+```
+
 ## Transfer photos to local machine
 ```bash
 scp -r <pi-user>@<pi-ip>:/home/<pi-user>/tiny-film/data/captures .
@@ -64,6 +74,11 @@ sudo systemctl status tiny-film-web.service tiny-film-shutter.service tiny-film-
 ## Take a photo through the web server
 ```bash
 curl -X POST http://localhost:8000/api/capture
+```
+
+## Record a video through the web server
+```bash
+curl -X POST http://localhost:8000/api/record
 ```
 
 ## Read battery details through the web server
