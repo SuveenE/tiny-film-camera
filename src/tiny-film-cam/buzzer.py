@@ -7,20 +7,27 @@ import time
 
 LOGGER = logging.getLogger("tiny_film.buzzer")
 
+# Soft default PWM duty cycle for passive buzzers (0.0–1.0). Full 0.5 is loud.
+DEFAULT_VOLUME = 0.16
+
 # Passive module sweet spot is roughly 1.5–2.5 kHz.
 # Each pattern step is (frequency_hz, on_seconds, gap_seconds_after).
 # Frequency is ignored for active buzzers (simple on/off).
 SOUNDS: dict[str, tuple[tuple[float, float, float], ...]] = {
-    # Two-step open/close approximation of a mechanical shutter.
-    "shutter": ((2000.0, 0.02, 0.012), (1550.0, 0.035, 0.0)),
-    "click": ((1550.0, 0.06, 0.0),),
-    "beep": ((1700.0, 0.15, 0.0),),
-    "chirp": ((1850.0, 0.10, 0.0),),
-    "alert": ((2000.0, 0.25, 0.0),),
-    "double": ((1500.0, 0.08, 0.05), (1500.0, 0.08, 0.0)),
+    # Soft open/close click-clack — short and quiet.
+    "shutter": ((1750.0, 0.014, 0.018), (1500.0, 0.022, 0.0)),
+    "click": ((1550.0, 0.035, 0.0),),
+    "beep": ((1600.0, 0.07, 0.0),),
+    "chirp": ((1700.0, 0.05, 0.0),),
+    "alert": ((1800.0, 0.10, 0.0),),
+    "double": ((1500.0, 0.04, 0.04), (1500.0, 0.04, 0.0)),
 }
 
 SOUND_ORDER = ("shutter", "click", "beep", "chirp", "alert", "double")
+
+
+def clamp_volume(volume: float) -> float:
+    return max(0.0, min(1.0, volume))
 
 
 class ShutterBuzzer:
@@ -28,10 +35,18 @@ class ShutterBuzzer:
 
     Best-effort: if gpiozero is missing or the pin cannot be claimed, the
     buzzer disables itself so captures are never blocked by sound feedback.
+
+    Passive buzzers are driven with a low PWM duty cycle so cues stay soft.
     """
 
-    def __init__(self, pin: int | None, active: bool = False) -> None:
+    def __init__(
+        self,
+        pin: int | None,
+        active: bool = False,
+        volume: float = DEFAULT_VOLUME,
+    ) -> None:
         self._active = active
+        self._volume = clamp_volume(volume)
         self._device = None
         self._lock = threading.Lock()
 
@@ -44,11 +59,10 @@ class ShutterBuzzer:
 
                 self._device = Buzzer(pin)
             else:
-                from gpiozero import TonalBuzzer
-                from gpiozero.tones import Tone
+                from gpiozero import PWMOutputDevice
 
-                # Centre the PWM range on the slightly lower cue tones.
-                self._device = TonalBuzzer(pin, mid_tone=Tone(1750), octaves=1)
+                # Duty-cycle volume: keep value at 0 until a tone plays.
+                self._device = PWMOutputDevice(pin, frequency=1600, initial_value=0)
         except Exception:
             LOGGER.exception(
                 "Could not set up buzzer on GPIO %s; captures will run without sound",
@@ -126,9 +140,8 @@ class ShutterBuzzer:
         if self._active:
             self._device.on()
         else:
-            from gpiozero.tones import Tone
-
-            self._device.play(Tone(frequency=frequency))
+            self._device.frequency = max(1.0, frequency)
+            self._device.value = self._volume
 
     def _tone_off(self) -> None:
         if self._device is None:
@@ -136,7 +149,7 @@ class ShutterBuzzer:
         if self._active:
             self._device.off()
         else:
-            self._device.stop()
+            self._device.value = 0
 
     def close(self) -> None:
         if self._device is None:
@@ -174,6 +187,12 @@ def parse_args() -> argparse.Namespace:
         help="Drive an active buzzer with simple on/off.",
     )
     parser.add_argument(
+        "--volume",
+        type=float,
+        default=DEFAULT_VOLUME,
+        help=f"Passive PWM duty cycle 0.0–1.0 (default: {DEFAULT_VOLUME}).",
+    )
+    parser.add_argument(
         "--sound",
         choices=SOUND_ORDER,
         help="Play a single named sound instead of the full demo.",
@@ -184,7 +203,7 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
     args = parse_args()
-    buzzer = ShutterBuzzer(args.pin, active=args.active)
+    buzzer = ShutterBuzzer(args.pin, active=args.active, volume=args.volume)
     if not buzzer.enabled:
         raise SystemExit(
             f"Could not open buzzer on BCM GPIO {args.pin}. "
@@ -192,7 +211,12 @@ def main() -> None:
         )
 
     kind = "active" if args.active else "passive"
-    LOGGER.info("Testing %s buzzer on BCM GPIO %s", kind, args.pin)
+    LOGGER.info(
+        "Testing %s buzzer on BCM GPIO %s (volume=%.2f)",
+        kind,
+        args.pin,
+        clamp_volume(args.volume),
+    )
     try:
         if args.sound:
             buzzer._run_pattern(SOUNDS[args.sound])
