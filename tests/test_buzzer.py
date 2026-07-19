@@ -85,12 +85,13 @@ class ShutterBuzzerTest(unittest.TestCase):
         for name in buzzer.SOUND_ORDER:
             self.assertIn(name, buzzer.SOUNDS)
 
-    def test_shutter_pattern_is_two_step_click_clack(self) -> None:
+    def test_shutter_pattern_is_soft_descending_pair(self) -> None:
         pattern = buzzer.SOUNDS["shutter"]
         self.assertEqual(len(pattern), 2)
         self.assertGreater(pattern[0][0], pattern[1][0])
-        self.assertLess(pattern[0][1], 0.05)
-        self.assertLess(pattern[1][1], 0.05)
+        self.assertLessEqual(pattern[0][1], 0.06)
+        self.assertLessEqual(pattern[1][1], 0.06)
+        self.assertLessEqual(pattern[0][0], 1650.0)
 
     def test_pattern_plays_tones_in_order(self) -> None:
         device = buzzer.ShutterBuzzer(None)
@@ -154,7 +155,10 @@ class ShutterBuzzerTest(unittest.TestCase):
     def test_volume_is_clamped(self) -> None:
         self.assertEqual(buzzer.clamp_volume(-1.0), 0.0)
         self.assertEqual(buzzer.clamp_volume(1.5), 1.0)
-        self.assertEqual(buzzer.clamp_volume(0.22), 0.22)
+        self.assertEqual(buzzer.clamp_volume(0.14), 0.14)
+
+    def test_default_volume_is_calm(self) -> None:
+        self.assertLessEqual(buzzer.DEFAULT_VOLUME, 0.2)
 
     def test_close_releases_device(self) -> None:
         device = buzzer.ShutterBuzzer(None)

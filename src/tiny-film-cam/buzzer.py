@@ -7,9 +7,9 @@ import time
 
 LOGGER = logging.getLogger("tiny_film.buzzer")
 
-# Soft default. Volume is burst density (0–1), not PWM duty — transistor
+# Calm default. Volume is burst density (0–1), not PWM duty — transistor
 # modules ignore duty cycle and stay full-loud whenever the pin is high.
-DEFAULT_VOLUME = 0.22
+DEFAULT_VOLUME = 0.14
 
 # Chop the carrier this often; denser "on" slices sound louder.
 _BURST_PERIOD_SECONDS = 0.001
@@ -17,17 +17,19 @@ _BURST_PERIOD_SECONDS = 0.001
 # Carrier square-wave duty while a burst slice is active.
 _CARRIER_DUTY = 0.5
 
-# Passive module sweet spot is roughly 1.5–2.5 kHz.
-# Each pattern step is (frequency_hz, on_seconds, gap_seconds_after).
+# Keep cues near the low end of the module band (~1.5 kHz) so they stay
+# soft instead of piercing. Each step: (frequency_hz, on_seconds, gap_after).
 # Frequency is ignored for active buzzers (simple on/off).
 SOUNDS: dict[str, tuple[tuple[float, float, float], ...]] = {
-    # Soft open/close click-clack — short and quiet.
-    "shutter": ((1750.0, 0.014, 0.018), (1500.0, 0.022, 0.0)),
-    "click": ((1550.0, 0.035, 0.0),),
-    "beep": ((1600.0, 0.07, 0.0),),
-    "chirp": ((1700.0, 0.05, 0.0),),
-    "alert": ((1800.0, 0.10, 0.0),),
-    "double": ((1500.0, 0.04, 0.04), (1500.0, 0.04, 0.0)),
+    # Soft descending settle — calm shutter cue, not a sharp slap.
+    "shutter": ((1580.0, 0.03, 0.045), (1500.0, 0.05, 0.0)),
+    "click": ((1520.0, 0.04, 0.0),),
+    "beep": ((1540.0, 0.09, 0.0),),
+    # Gentle two-step for video start.
+    "chirp": ((1560.0, 0.05, 0.035), (1500.0, 0.07, 0.0)),
+    # Soft double pulse — noticeable, not alarming.
+    "alert": ((1500.0, 0.08, 0.07), (1500.0, 0.08, 0.0)),
+    "double": ((1520.0, 0.05, 0.055), (1500.0, 0.06, 0.0)),
 }
 
 SOUND_ORDER = ("shutter", "click", "beep", "chirp", "alert", "double")

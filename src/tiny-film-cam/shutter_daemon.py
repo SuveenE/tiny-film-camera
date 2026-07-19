@@ -110,8 +110,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--buzzer-volume",
         type=float,
-        default=env_float("TINY_FILM_BUZZER_VOLUME", 0.22),
-        help="Passive buzzer loudness 0.0–1.0 via burst density (default: 0.22).",
+        default=env_float("TINY_FILM_BUZZER_VOLUME", 0.14),
+        help="Passive buzzer loudness 0.0–1.0 via burst density (default: 0.14).",
     )
     parser.add_argument(
         "--hold-time",
