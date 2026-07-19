@@ -5,11 +5,11 @@ The shutter daemon (`src/tiny-film-cam/shutter_daemon.py`) drives these sounds:
 
 | Sound | When |
 |-------|------|
-| **click** | Shutter button fires (photo or video) |
-| **beep** | Photo saved |
+| **shutter** | Photo capture (open/close click-clack) |
 | **chirp** | Video recording started |
 | **double** | Video saved |
 | **alert** | Capture or recording failed |
+| **click** / **beep** | Extra cues in the hardware demo |
 
 By default the shutter daemon uses a **passive** buzzer on **BCM GPIO 18**.
 Leave `TINY_FILM_BUZZER_PIN` blank in `.env`, or pass `--no-buzzer`, to disable.
@@ -34,7 +34,7 @@ Buzzer I/O ──→ BCM GPIO 18  (physical pin 12)
 Power the module from **3.3V**, not 5V — the Pi GPIO is 3.3V and matches the
 module's 3.3–5.5V supply range.
 
-## Test the five sounds
+## Test the sounds
 
 With the module wired, run the demo from the project root on the Pi:
 

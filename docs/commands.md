@@ -56,14 +56,14 @@ Example (Pi over phone hotspot):
 scp -r suveen@172.20.10.2:/home/suveen/tiny-film/data/captures .
 ```
 
-## Test the feedback buzzer (five sounds)
+## Test the feedback buzzer
 ```bash
 python3 src/tiny-film-cam/buzzer.py
 ```
 
-## Play one buzzer sound
+## Play the camera shutter sound
 ```bash
-python3 src/tiny-film-cam/buzzer.py --sound beep
+python3 src/tiny-film-cam/buzzer.py --sound shutter
 ```
 
 ## Install boot services
