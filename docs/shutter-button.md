@@ -50,6 +50,9 @@ The service file is at `deploy/tiny-film-shutter.service`.
 All capture settings (quality, EV, rotation, AWB, etc.) are inherited from env
 vars or can be passed as CLI flags — run with `--help` for the full list.
 
+For optional audible feedback from a passive buzzer module, see
+[buzzer.md](buzzer.md).
+
 ## Notes
 
 - Pressing the button while a capture is already in progress is ignored (no
