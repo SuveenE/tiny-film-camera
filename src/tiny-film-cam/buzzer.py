@@ -7,8 +7,15 @@ import time
 
 LOGGER = logging.getLogger("tiny_film.buzzer")
 
-# Soft default PWM duty cycle for passive buzzers (0.0–1.0). Full 0.5 is loud.
-DEFAULT_VOLUME = 0.16
+# Soft default. Volume is burst density (0–1), not PWM duty — transistor
+# modules ignore duty cycle and stay full-loud whenever the pin is high.
+DEFAULT_VOLUME = 0.22
+
+# Chop the carrier this often; denser "on" slices sound louder.
+_BURST_PERIOD_SECONDS = 0.001
+
+# Carrier square-wave duty while a burst slice is active.
+_CARRIER_DUTY = 0.5
 
 # Passive module sweet spot is roughly 1.5–2.5 kHz.
 # Each pattern step is (frequency_hz, on_seconds, gap_seconds_after).
@@ -36,7 +43,9 @@ class ShutterBuzzer:
     Best-effort: if gpiozero is missing or the pin cannot be claimed, the
     buzzer disables itself so captures are never blocked by sound feedback.
 
-    Passive buzzers are driven with a low PWM duty cycle so cues stay soft.
+    Passive modules with a drive transistor stay full amplitude while the pin
+    is high, so loudness is controlled by bursting the tone on/off (volume =
+    fraction of time the carrier runs), not by PWM duty cycle.
     """
 
     def __init__(
@@ -61,7 +70,6 @@ class ShutterBuzzer:
             else:
                 from gpiozero import PWMOutputDevice
 
-                # Duty-cycle volume: keep value at 0 until a tone plays.
                 self._device = PWMOutputDevice(pin, frequency=1600, initial_value=0)
         except Exception:
             LOGGER.exception(
@@ -125,23 +133,61 @@ class ShutterBuzzer:
         with self._lock:
             try:
                 for frequency, on_seconds, gap_seconds in pattern:
-                    self._tone_on(frequency)
-                    time.sleep(on_seconds)
-                    self._tone_off()
+                    self._play_tone(frequency, on_seconds)
                     if gap_seconds:
                         time.sleep(gap_seconds)
             except Exception:
                 LOGGER.exception("Buzzer playback failed")
                 self._tone_off()
 
+    def _play_tone(self, frequency: float, on_seconds: float) -> None:
+        if self._device is None or on_seconds <= 0:
+            return
+        if self._active:
+            self._device.on()
+            time.sleep(on_seconds)
+            self._device.off()
+            return
+
+        if self._volume <= 0:
+            time.sleep(on_seconds)
+            return
+
+        self._device.frequency = max(1.0, frequency)
+        if self._volume >= 1.0:
+            self._device.value = _CARRIER_DUTY
+            time.sleep(on_seconds)
+            self._tone_off()
+            return
+
+        # Burst-gate the carrier so volume changes are audible on modules that
+        # only hard-switch VCC to the piezo (duty cycle alone does nothing).
+        on_slice = _BURST_PERIOD_SECONDS * self._volume
+        off_slice = _BURST_PERIOD_SECONDS - on_slice
+        deadline = time.monotonic() + on_seconds
+        while True:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                break
+            self._device.value = _CARRIER_DUTY
+            time.sleep(min(on_slice, remaining))
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                break
+            self._tone_off()
+            if off_slice > 0:
+                time.sleep(min(off_slice, remaining))
+        self._tone_off()
+
     def _tone_on(self, frequency: float) -> None:
+        """Legacy helper used by tests; prefer `_play_tone` for playback."""
         if self._device is None:
             return
         if self._active:
             self._device.on()
         else:
             self._device.frequency = max(1.0, frequency)
-            self._device.value = self._volume
+            self._device.value = _CARRIER_DUTY
 
     def _tone_off(self) -> None:
         if self._device is None:
@@ -190,7 +236,10 @@ def parse_args() -> argparse.Namespace:
         "--volume",
         type=float,
         default=DEFAULT_VOLUME,
-        help=f"Passive PWM duty cycle 0.0–1.0 (default: {DEFAULT_VOLUME}).",
+        help=(
+            f"Passive loudness 0.0–1.0 via burst density "
+            f"(default: {DEFAULT_VOLUME})."
+        ),
     )
     parser.add_argument(
         "--sound",
