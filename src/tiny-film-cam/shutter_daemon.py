@@ -37,9 +37,16 @@ def env_int(name: str, default: int) -> int:
     return int(value)
 
 
-def env_optional_int(name: str) -> int | None:
+def env_optional_int(name: str, default: int | None = None) -> int | None:
+    """Read an optional int env var.
+
+    Unset → ``default``. Explicit empty string → ``None`` (used to disable the
+    buzzer while keeping the code default of GPIO 18 when the var is absent).
+    """
     value = os.environ.get(name)
-    if value is None or value.strip() == "":
+    if value is None:
+        return default
+    if value.strip() == "":
         return None
     return int(value)
 
@@ -79,8 +86,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--buzzer-pin",
         type=int,
-        default=env_optional_int("TINY_FILM_BUZZER_PIN"),
-        help="BCM GPIO pin for an optional feedback buzzer. Omit to disable.",
+        default=env_optional_int("TINY_FILM_BUZZER_PIN", 18),
+        help="BCM GPIO pin for the feedback buzzer (default: 18). Use --no-buzzer to disable.",
+    )
+    parser.add_argument(
+        "--no-buzzer",
+        action="store_true",
+        help="Disable the feedback buzzer.",
     )
     parser.set_defaults(buzzer_active=env_bool("TINY_FILM_BUZZER_ACTIVE", False))
     parser.add_argument(
@@ -202,7 +214,8 @@ def main() -> None:
     capture_lock = threading.Lock()
     stop_event = threading.Event()
     held_flag = threading.Event()
-    buzzer = ShutterBuzzer(args.buzzer_pin, active=args.buzzer_active)
+    buzzer_pin = None if args.no_buzzer else args.buzzer_pin
+    buzzer = ShutterBuzzer(buzzer_pin, active=args.buzzer_active)
 
     try:
         from gpiozero import Button
@@ -317,8 +330,10 @@ def main() -> None:
     if buzzer.enabled:
         buzzer_kind = "active" if args.buzzer_active else "passive"
         LOGGER.info(
-            "Buzzer feedback on BCM GPIO %s (%s)", args.buzzer_pin, buzzer_kind
+            "Buzzer feedback on BCM GPIO %s (%s)", buzzer_pin, buzzer_kind
         )
+    elif args.no_buzzer or buzzer_pin is None:
+        LOGGER.info("Buzzer feedback disabled")
 
     try:
         while not stop_event.wait(1.0):

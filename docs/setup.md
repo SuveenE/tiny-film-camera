@@ -39,8 +39,8 @@
    pin. With the default `.env.example` settings, the Pi uses its internal
    pull-up resistor.
 11. Optionally wire the passive buzzer: VCC to 3V3, GND to GND, and I/O to
-    BCM GPIO 18 (physical pin 12). Set `TINY_FILM_BUZZER_PIN=18` in `.env`,
-    then test with `python3 src/tiny-film-cam/buzzer.py`. See
+    BCM GPIO 18 (physical pin 12). The shutter daemon enables that pin by
+    default — test with `python3 src/tiny-film-cam/buzzer.py`. See
     [buzzer.md](buzzer.md).
 12. Install the Tiny Film boot services:
    ```bash
