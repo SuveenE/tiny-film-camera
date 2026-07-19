@@ -29,6 +29,7 @@ class ShutterBuzzerTest(unittest.TestCase):
         device = buzzer.ShutterBuzzer(None)
 
         self.assertFalse(device.enabled)
+        device.shutter()
         device.click()
         device.photo_ok()
         device.video_start()
@@ -57,13 +58,20 @@ class ShutterBuzzerTest(unittest.TestCase):
 
         self.assertFalse(device.enabled)
 
-    def test_five_named_sounds_exist(self) -> None:
+    def test_named_sounds_exist(self) -> None:
         self.assertEqual(
             tuple(buzzer.SOUND_ORDER),
-            ("click", "beep", "chirp", "alert", "double"),
+            ("shutter", "click", "beep", "chirp", "alert", "double"),
         )
         for name in buzzer.SOUND_ORDER:
             self.assertIn(name, buzzer.SOUNDS)
+
+    def test_shutter_pattern_is_two_step_click_clack(self) -> None:
+        pattern = buzzer.SOUNDS["shutter"]
+        self.assertEqual(len(pattern), 2)
+        self.assertGreater(pattern[0][0], pattern[1][0])
+        self.assertLess(pattern[0][1], 0.05)
+        self.assertLess(pattern[1][1], 0.05)
 
     def test_pattern_calls_tone_helpers_in_order(self) -> None:
         device = buzzer.ShutterBuzzer(None)

@@ -236,7 +236,7 @@ def main() -> None:
 
         try:
             LOGGER.info("Button pressed; capturing photo")
-            buzzer.click()
+            buzzer.shutter()
             settings = CaptureSettings(
                 output_dir=output_dir,
                 width=args.width,
@@ -257,7 +257,6 @@ def main() -> None:
             )
             output_paths = capture_photos(settings)
             LOGGER.info("Saved %s photo(s): %s", len(output_paths), output_paths)
-            buzzer.photo_ok()
         except Exception:
             LOGGER.exception("Capture failed")
             buzzer.error()
@@ -272,7 +271,6 @@ def main() -> None:
 
         try:
             LOGGER.info("Button held; recording %.1fs video", args.video_duration)
-            buzzer.click()
             buzzer.video_start()
             settings = VideoSettings(
                 output_dir=output_dir,

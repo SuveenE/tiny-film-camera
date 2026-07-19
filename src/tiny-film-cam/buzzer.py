@@ -11,6 +11,8 @@ LOGGER = logging.getLogger("tiny_film.buzzer")
 # Each pattern step is (frequency_hz, on_seconds, gap_seconds_after).
 # Frequency is ignored for active buzzers (simple on/off).
 SOUNDS: dict[str, tuple[tuple[float, float, float], ...]] = {
+    # Two-step open/close approximation of a mechanical shutter.
+    "shutter": ((2000.0, 0.02, 0.012), (1550.0, 0.035, 0.0)),
     "click": ((1550.0, 0.06, 0.0),),
     "beep": ((1700.0, 0.15, 0.0),),
     "chirp": ((1850.0, 0.10, 0.0),),
@@ -18,7 +20,7 @@ SOUNDS: dict[str, tuple[tuple[float, float, float], ...]] = {
     "double": ((1500.0, 0.08, 0.05), (1500.0, 0.08, 0.0)),
 }
 
-SOUND_ORDER = ("click", "beep", "chirp", "alert", "double")
+SOUND_ORDER = ("shutter", "click", "beep", "chirp", "alert", "double")
 
 
 class ShutterBuzzer:
@@ -58,13 +60,17 @@ class ShutterBuzzer:
     def enabled(self) -> bool:
         return self._device is not None
 
+    def shutter(self) -> None:
+        """Mechanical shutter-like click-clack for a photo capture."""
+        self.play("shutter")
+
     def click(self) -> None:
         """Short tick when the shutter button fires."""
         self.play("click")
 
     def photo_ok(self) -> None:
         """Confirmation that a photo was saved."""
-        self.play("beep")
+        self.play("shutter")
 
     def video_start(self) -> None:
         """Cue that video recording has started."""
