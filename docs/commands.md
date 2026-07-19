@@ -61,9 +61,9 @@ scp -r suveen@172.20.10.2:/home/suveen/tiny-film/data/captures .
 python3 src/tiny-film-cam/buzzer.py
 ```
 
-## Play the camera shutter sound
+## Play one buzzer sound
 ```bash
-python3 src/tiny-film-cam/buzzer.py --sound shutter
+python3 src/tiny-film-cam/buzzer.py --sound beep
 ```
 
 ## Install boot services

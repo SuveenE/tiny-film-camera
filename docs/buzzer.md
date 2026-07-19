@@ -5,11 +5,11 @@ The shutter daemon (`src/tiny-film-cam/shutter_daemon.py`) drives these sounds:
 
 | Sound | When |
 |-------|------|
-| **shutter** | Photo capture (open/close click-clack) |
+| **click** | Shutter button fires (photo or video) |
+| **beep** | Photo saved |
 | **chirp** | Video recording started |
 | **double** | Video saved |
 | **alert** | Capture or recording failed |
-| **click** / **beep** | Extra cues in the hardware demo |
 
 By default the shutter daemon uses a **passive** buzzer on **BCM GPIO 18**.
 Leave `TINY_FILM_BUZZER_PIN` blank in `.env`, or pass `--no-buzzer`, to disable.
@@ -56,11 +56,9 @@ loud while the pin is high). Loudness is controlled by bursting the tone
 on/off — lower `--volume` means shorter bursts. Compare:
 
 ```bash
-python3 src/tiny-film-cam/buzzer.py --sound shutter --volume 0.10
-python3 src/tiny-film-cam/buzzer.py --sound shutter --volume 0.3
+python3 src/tiny-film-cam/buzzer.py --sound beep --volume 0.12
+python3 src/tiny-film-cam/buzzer.py --sound beep --volume 0.5
 ```
-
-Cues are tuned low and soft by default (around 1.5 kHz) so they stay calm.
 
 ## Using it with the shutter
 
@@ -93,7 +91,7 @@ python3 src/tiny-film-cam/shutter_daemon.py --no-buzzer
 |---------|---------|----------|---------|
 | Buzzer pin | `TINY_FILM_BUZZER_PIN` | `--buzzer-pin` / `--no-buzzer` | `18` (blank = disabled) |
 | Buzzer type | `TINY_FILM_BUZZER_ACTIVE` | `--buzzer-active` / `--buzzer-passive` | passive |
-| Volume (passive) | `TINY_FILM_BUZZER_VOLUME` | `--buzzer-volume` | `0.14` (burst density) |
+| Volume (passive) | `TINY_FILM_BUZZER_VOLUME` | `--buzzer-volume` | `0.22` (burst density) |
 
 ## Notes
 

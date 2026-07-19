@@ -110,8 +110,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--buzzer-volume",
         type=float,
-        default=env_float("TINY_FILM_BUZZER_VOLUME", 0.14),
-        help="Passive buzzer loudness 0.0–1.0 via burst density (default: 0.14).",
+        default=env_float("TINY_FILM_BUZZER_VOLUME", 0.22),
+        help="Passive buzzer loudness 0.0–1.0 via burst density (default: 0.22).",
     )
     parser.add_argument(
         "--hold-time",
@@ -246,7 +246,7 @@ def main() -> None:
 
         try:
             LOGGER.info("Button pressed; capturing photo")
-            buzzer.shutter()
+            buzzer.click()
             settings = CaptureSettings(
                 output_dir=output_dir,
                 width=args.width,
@@ -267,6 +267,7 @@ def main() -> None:
             )
             output_paths = capture_photos(settings)
             LOGGER.info("Saved %s photo(s): %s", len(output_paths), output_paths)
+            buzzer.photo_ok()
         except Exception:
             LOGGER.exception("Capture failed")
             buzzer.error()
@@ -281,6 +282,7 @@ def main() -> None:
 
         try:
             LOGGER.info("Button held; recording %.1fs video", args.video_duration)
+            buzzer.click()
             buzzer.video_start()
             settings = VideoSettings(
                 output_dir=output_dir,

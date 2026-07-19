@@ -7,9 +7,9 @@ import time
 
 LOGGER = logging.getLogger("tiny_film.buzzer")
 
-# Calm default. Volume is burst density (0–1), not PWM duty — transistor
-# modules ignore duty cycle and stay full-loud whenever the pin is high.
-DEFAULT_VOLUME = 0.14
+# Volume is burst density (0–1), not PWM duty — transistor modules ignore
+# duty cycle and stay full-loud whenever the pin is high.
+DEFAULT_VOLUME = 0.22
 
 # Chop the carrier this often; denser "on" slices sound louder.
 _BURST_PERIOD_SECONDS = 0.001
@@ -17,22 +17,18 @@ _BURST_PERIOD_SECONDS = 0.001
 # Carrier square-wave duty while a burst slice is active.
 _CARRIER_DUTY = 0.5
 
-# Keep cues near the low end of the module band (~1.5 kHz) so they stay
-# soft instead of piercing. Each step: (frequency_hz, on_seconds, gap_after).
+# Original cue set (module sweet spot ~1.5–2.5 kHz).
+# Each step: (frequency_hz, on_seconds, gap_seconds_after).
 # Frequency is ignored for active buzzers (simple on/off).
 SOUNDS: dict[str, tuple[tuple[float, float, float], ...]] = {
-    # Soft descending settle — calm shutter cue, not a sharp slap.
-    "shutter": ((1580.0, 0.03, 0.045), (1500.0, 0.05, 0.0)),
-    "click": ((1520.0, 0.04, 0.0),),
-    "beep": ((1540.0, 0.09, 0.0),),
-    # Gentle two-step for video start.
-    "chirp": ((1560.0, 0.05, 0.035), (1500.0, 0.07, 0.0)),
-    # Soft double pulse — noticeable, not alarming.
-    "alert": ((1500.0, 0.08, 0.07), (1500.0, 0.08, 0.0)),
-    "double": ((1520.0, 0.05, 0.055), (1500.0, 0.06, 0.0)),
+    "click": ((1800.0, 0.06, 0.0),),
+    "beep": ((2000.0, 0.15, 0.0),),
+    "chirp": ((2200.0, 0.10, 0.0),),
+    "alert": ((2400.0, 0.25, 0.0),),
+    "double": ((1600.0, 0.08, 0.05), (1600.0, 0.08, 0.0)),
 }
 
-SOUND_ORDER = ("shutter", "click", "beep", "chirp", "alert", "double")
+SOUND_ORDER = ("click", "beep", "chirp", "alert", "double")
 
 
 def clamp_volume(volume: float) -> float:
@@ -84,17 +80,13 @@ class ShutterBuzzer:
     def enabled(self) -> bool:
         return self._device is not None
 
-    def shutter(self) -> None:
-        """Mechanical shutter-like click-clack for a photo capture."""
-        self.play("shutter")
-
     def click(self) -> None:
         """Short tick when the shutter button fires."""
         self.play("click")
 
     def photo_ok(self) -> None:
         """Confirmation that a photo was saved."""
-        self.play("shutter")
+        self.play("beep")
 
     def video_start(self) -> None:
         """Cue that video recording has started."""
