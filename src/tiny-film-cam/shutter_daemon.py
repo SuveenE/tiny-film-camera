@@ -7,7 +7,12 @@ import signal
 import threading
 from pathlib import Path
 
-from buzzer import ShutterBuzzer
+from buzzer import (
+    DEFAULT_PHOTO_SOUND,
+    DEFAULT_VOLUME,
+    PHOTO_SOUNDS,
+    ShutterBuzzer,
+)
 from camera import (
     AWB_MODES,
     CaptureSettings,
@@ -110,8 +115,22 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--buzzer-volume",
         type=float,
-        default=env_float("TINY_FILM_BUZZER_VOLUME", 0.22),
-        help="Passive buzzer loudness 0.0–1.0 via burst density (default: 0.22).",
+        default=env_float("TINY_FILM_BUZZER_VOLUME", DEFAULT_VOLUME),
+        help=(
+            "Passive buzzer loudness 0.0–1.0 via burst density "
+            f"(default: {DEFAULT_VOLUME})."
+        ),
+    )
+    parser.add_argument(
+        "--buzzer-photo-sound",
+        choices=PHOTO_SOUNDS,
+        default=os.environ.get(
+            "TINY_FILM_BUZZER_PHOTO_SOUND", DEFAULT_PHOTO_SOUND
+        ),
+        help=(
+            "Photo-saved cue: gentle, shutter, sparkle, or minimal "
+            f"(default: {DEFAULT_PHOTO_SOUND})."
+        ),
     )
     parser.add_argument(
         "--hold-time",
@@ -225,6 +244,7 @@ def main() -> None:
         buzzer_pin,
         active=args.buzzer_active,
         volume=args.buzzer_volume,
+        photo_sound=args.buzzer_photo_sound,
     )
 
     try:
@@ -340,10 +360,11 @@ def main() -> None:
     if buzzer.enabled:
         buzzer_kind = "active" if args.buzzer_active else "passive"
         LOGGER.info(
-            "Buzzer feedback on BCM GPIO %s (%s, volume=%.2f)",
+            "Buzzer feedback on BCM GPIO %s (%s, volume=%.2f, photo=%s)",
             buzzer_pin,
             buzzer_kind,
             args.buzzer_volume,
+            args.buzzer_photo_sound,
         )
     elif args.no_buzzer or buzzer_pin is None:
         LOGGER.info("Buzzer feedback disabled")

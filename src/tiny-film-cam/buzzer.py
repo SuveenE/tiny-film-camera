@@ -8,8 +8,10 @@ import time
 LOGGER = logging.getLogger("tiny_film.buzzer")
 
 # Volume is burst density (0–1), not PWM duty — transistor modules ignore
-# duty cycle and stay full-loud whenever the pin is high.
-DEFAULT_VOLUME = 0.22
+# duty cycle and stay full-loud whenever the pin is high. A restrained default
+# keeps the little piezo from dominating the moment.
+DEFAULT_VOLUME = 0.16
+DEFAULT_PHOTO_SOUND = "gentle"
 
 # Chop the carrier this often; denser "on" slices sound louder.
 _BURST_PERIOD_SECONDS = 0.001
@@ -17,18 +19,47 @@ _BURST_PERIOD_SECONDS = 0.001
 # Carrier square-wave duty while a burst slice is active.
 _CARRIER_DUTY = 0.5
 
-# Original cue set (module sweet spot ~1.5–2.5 kHz).
+# Musical pitches are rounded to the nearest hertz and kept inside the
+# module's useful ~1.5–2.5 kHz band. Short consonant intervals sound less like
+# an appliance alarm than a long single-frequency beep.
+#
 # Each step: (frequency_hz, on_seconds, gap_seconds_after).
 # Frequency is ignored for active buzzers (simple on/off).
+_G6 = 1568.0
+_B6 = 1976.0
+_D7 = 2349.0
+
+PHOTO_SOUNDS = ("gentle", "shutter", "sparkle", "minimal")
+
 SOUNDS: dict[str, tuple[tuple[float, float, float], ...]] = {
-    "click": ((1800.0, 0.06, 0.0),),
-    "beep": ((2000.0, 0.15, 0.0),),
-    "chirp": ((2200.0, 0.10, 0.0),),
-    "alert": ((2400.0, 0.25, 0.0),),
-    "double": ((1600.0, 0.08, 0.05), (1600.0, 0.08, 0.0)),
+    # A short, resolving major-third fall. This is the default photo cue.
+    "gentle": ((_B6, 0.022, 0.014), (_G6, 0.040, 0.0)),
+    # Dry high/low taps that suggest a mechanical shutter rather than a beep.
+    "shutter": (
+        (2200.0, 0.010, 0.008),
+        (1800.0, 0.014, 0.009),
+        (_G6, 0.022, 0.0),
+    ),
+    # A quick G-major arpeggio for a brighter, playful confirmation.
+    "sparkle": (
+        (_G6, 0.020, 0.012),
+        (_B6, 0.022, 0.012),
+        (_D7, 0.032, 0.0),
+    ),
+    # The least intrusive option: one low, very short tick.
+    "minimal": ((_G6, 0.030, 0.0),),
+    # Semantic cues used elsewhere in the shutter daemon.
+    "click": ((_G6, 0.018, 0.0),),
+    "chirp": ((_G6, 0.035, 0.020), (_B6, 0.050, 0.0)),
+    "double": ((_B6, 0.035, 0.045), (_G6, 0.045, 0.0)),
+    "alert": ((_G6, 0.070, 0.055), (_G6, 0.070, 0.0)),
 }
 
-SOUND_ORDER = ("click", "beep", "chirp", "alert", "double")
+# Keep the old CLI name working, but make it the new gentle cue.
+SOUNDS["beep"] = SOUNDS["gentle"]
+
+# The no-argument hardware demo focuses on distinct sounds, not aliases.
+SOUND_ORDER = PHOTO_SOUNDS + ("chirp", "double", "alert")
 
 
 def clamp_volume(volume: float) -> float:
@@ -51,9 +82,16 @@ class ShutterBuzzer:
         pin: int | None,
         active: bool = False,
         volume: float = DEFAULT_VOLUME,
+        photo_sound: str = DEFAULT_PHOTO_SOUND,
     ) -> None:
+        if photo_sound not in PHOTO_SOUNDS:
+            choices = ", ".join(PHOTO_SOUNDS)
+            raise ValueError(
+                f"Unknown photo sound: {photo_sound!r}; choose one of: {choices}"
+            )
         self._active = active
         self._volume = clamp_volume(volume)
+        self._photo_sound = photo_sound
         self._device = None
         self._lock = threading.Lock()
 
@@ -86,7 +124,7 @@ class ShutterBuzzer:
 
     def photo_ok(self) -> None:
         """Confirmation that a photo was saved."""
-        self.play("beep")
+        self.play(self._photo_sound)
 
     def video_start(self) -> None:
         """Cue that video recording has started."""
@@ -237,7 +275,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--sound",
-        choices=SOUND_ORDER,
+        choices=tuple(SOUNDS),
         help="Play a single named sound instead of the full demo.",
     )
     return parser.parse_args()
