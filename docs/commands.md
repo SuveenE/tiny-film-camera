@@ -73,7 +73,7 @@ python3 src/tiny-film-cam/buzzer.py --sound beep
 
 ## Restart services
 ```bash
-sudo systemctl restart tiny-film-web.service tiny-film-shutter.service tiny-film-battery.service
+./scripts/restart_services.sh
 ```
 
 ## Service status
