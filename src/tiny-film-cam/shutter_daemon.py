@@ -108,6 +108,12 @@ def parse_args() -> argparse.Namespace:
         help="Treat the buzzer as a passive buzzer driven with PWM tones (default).",
     )
     parser.add_argument(
+        "--buzzer-volume",
+        type=float,
+        default=env_float("TINY_FILM_BUZZER_VOLUME", 0.16),
+        help="Passive buzzer PWM duty cycle 0.0–1.0 (default: 0.16, softer).",
+    )
+    parser.add_argument(
         "--hold-time",
         type=float,
         default=1.0,
@@ -215,7 +221,11 @@ def main() -> None:
     stop_event = threading.Event()
     held_flag = threading.Event()
     buzzer_pin = None if args.no_buzzer else args.buzzer_pin
-    buzzer = ShutterBuzzer(buzzer_pin, active=args.buzzer_active)
+    buzzer = ShutterBuzzer(
+        buzzer_pin,
+        active=args.buzzer_active,
+        volume=args.buzzer_volume,
+    )
 
     try:
         from gpiozero import Button
@@ -328,7 +338,10 @@ def main() -> None:
     if buzzer.enabled:
         buzzer_kind = "active" if args.buzzer_active else "passive"
         LOGGER.info(
-            "Buzzer feedback on BCM GPIO %s (%s)", buzzer_pin, buzzer_kind
+            "Buzzer feedback on BCM GPIO %s (%s, volume=%.2f)",
+            buzzer_pin,
+            buzzer_kind,
+            args.buzzer_volume,
         )
     elif args.no_buzzer or buzzer_pin is None:
         LOGGER.info("Buzzer feedback disabled")

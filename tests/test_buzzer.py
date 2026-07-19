@@ -98,6 +98,24 @@ class ShutterBuzzerTest(unittest.TestCase):
         fake.on.assert_called_once_with()
         fake.off.assert_called_once_with()
 
+    def test_passive_tone_uses_soft_duty_cycle(self) -> None:
+        device = buzzer.ShutterBuzzer(None, volume=0.16)
+        fake = MagicMock()
+        device._device = fake
+        device._active = False
+
+        device._tone_on(1700.0)
+        self.assertEqual(fake.frequency, 1700.0)
+        self.assertEqual(fake.value, 0.16)
+
+        device._tone_off()
+        self.assertEqual(fake.value, 0)
+
+    def test_volume_is_clamped(self) -> None:
+        self.assertEqual(buzzer.clamp_volume(-1.0), 0.0)
+        self.assertEqual(buzzer.clamp_volume(1.5), 1.0)
+        self.assertEqual(buzzer.clamp_volume(0.16), 0.16)
+
     def test_close_releases_device(self) -> None:
         device = buzzer.ShutterBuzzer(None)
         fake = MagicMock()
