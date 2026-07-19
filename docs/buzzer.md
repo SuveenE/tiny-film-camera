@@ -34,7 +34,7 @@ Buzzer I/O ──→ BCM GPIO 18  (physical pin 12)
 Power the module from **3.3V**, not 5V — the Pi GPIO is 3.3V and matches the
 module's 3.3–5.5V supply range.
 
-## Test the five sounds
+## Test the sounds
 
 With the module wired, run the demo from the project root on the Pi:
 
