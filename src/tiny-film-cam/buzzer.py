@@ -11,11 +11,11 @@ LOGGER = logging.getLogger("tiny_film.buzzer")
 # Each pattern step is (frequency_hz, on_seconds, gap_seconds_after).
 # Frequency is ignored for active buzzers (simple on/off).
 SOUNDS: dict[str, tuple[tuple[float, float, float], ...]] = {
-    "click": ((1800.0, 0.06, 0.0),),
-    "beep": ((2000.0, 0.15, 0.0),),
-    "chirp": ((2200.0, 0.10, 0.0),),
-    "alert": ((2400.0, 0.25, 0.0),),
-    "double": ((1600.0, 0.08, 0.05), (1600.0, 0.08, 0.0)),
+    "click": ((1550.0, 0.06, 0.0),),
+    "beep": ((1700.0, 0.15, 0.0),),
+    "chirp": ((1850.0, 0.10, 0.0),),
+    "alert": ((2000.0, 0.25, 0.0),),
+    "double": ((1500.0, 0.08, 0.05), (1500.0, 0.08, 0.0)),
 }
 
 SOUND_ORDER = ("click", "beep", "chirp", "alert", "double")
@@ -45,8 +45,8 @@ class ShutterBuzzer:
                 from gpiozero import TonalBuzzer
                 from gpiozero.tones import Tone
 
-                # Centre the PWM range on the module's 1.5–2.5 kHz band.
-                self._device = TonalBuzzer(pin, mid_tone=Tone(2000), octaves=1)
+                # Centre the PWM range on the slightly lower cue tones.
+                self._device = TonalBuzzer(pin, mid_tone=Tone(1750), octaves=1)
         except Exception:
             LOGGER.exception(
                 "Could not set up buzzer on GPIO %s; captures will run without sound",
