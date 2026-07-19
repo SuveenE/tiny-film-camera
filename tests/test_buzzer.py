@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+import builtins
 import importlib.util
 import sys
 import unittest
 from pathlib import Path
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 
 BUZZER_PATH = Path(__file__).resolve().parents[1] / "src" / "tiny-film-cam" / "buzzer.py"
@@ -36,8 +37,23 @@ class ShutterBuzzerTest(unittest.TestCase):
         device.close()
 
     def test_missing_gpiozero_degrades_gracefully(self) -> None:
-        # gpiozero is not installed off-Pi, so requesting a pin must not raise.
-        device = buzzer.ShutterBuzzer(18, active=False)
+        # Simulate a missing gpiozero even on a Pi where it is installed, so the
+        # test does not claim a real GPIO pin or depend on the host packages.
+        real_import = builtins.__import__
+
+        def block_gpiozero(
+            name: str,
+            globals_=None,
+            locals_=None,
+            fromlist: tuple[str, ...] = (),
+            level: int = 0,
+        ):
+            if name == "gpiozero" or name.startswith("gpiozero."):
+                raise ModuleNotFoundError("No module named 'gpiozero'")
+            return real_import(name, globals_, locals_, fromlist, level)
+
+        with patch("builtins.__import__", side_effect=block_gpiozero):
+            device = buzzer.ShutterBuzzer(18, active=False)
 
         self.assertFalse(device.enabled)
 
