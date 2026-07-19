@@ -42,6 +42,14 @@ def marker_image() -> Image.Image:
 
 
 class CameraRotationTest(unittest.TestCase):
+    def test_video_settings_default_to_24_fps(self) -> None:
+        with patch.dict("os.environ", {}, clear=True):
+            settings = camera.video_settings_from_env(Path.cwd())
+
+        self.assertEqual(camera.DEFAULT_VIDEO_FPS, 24)
+        self.assertEqual(camera.VideoSettings().fps, 24)
+        self.assertEqual(settings.fps, 24)
+
     def test_capture_settings_default_rotation_is_180(self) -> None:
         with patch.dict("os.environ", {}, clear=True):
             settings = camera.capture_settings_from_env(Path.cwd())
