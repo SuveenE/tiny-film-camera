@@ -66,6 +66,11 @@ python3 src/tiny-film-cam/buzzer.py
 python3 src/tiny-film-cam/buzzer.py --sound gentle --volume 0.16
 ```
 
+## Check whether the buzzer can change pitch
+```bash
+python3 src/tiny-film-cam/buzzer.py --sound pitch-test --volume 1.0
+```
+
 ## Install boot services
 ```bash
 ./scripts/install_service.sh --enable-now

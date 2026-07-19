@@ -13,8 +13,12 @@ LOGGER = logging.getLogger("tiny_film.buzzer")
 DEFAULT_VOLUME = 0.16
 DEFAULT_PHOTO_SOUND = "gentle"
 
-# Chop the carrier this often; denser "on" slices sound louder.
-_BURST_PERIOD_SECONDS = 0.001
+# Gate the carrier slowly enough that every "on" slice contains several
+# complete tone cycles. The old 1 ms gate produced 0.16 ms slices at the
+# default volume — shorter than one cycle of a 1.5 kHz note — so the gate
+# itself dominated and made different pitches sound almost identical.
+_BURST_PERIOD_SECONDS = 0.010
+_MIN_CARRIER_CYCLES_PER_BURST = 3.0
 
 # Carrier square-wave duty while a burst slice is active.
 _CARRIER_DUTY = 0.5
@@ -32,27 +36,28 @@ _D7 = 2349.0
 PHOTO_SOUNDS = ("gentle", "shutter", "sparkle", "minimal")
 
 SOUNDS: dict[str, tuple[tuple[float, float, float], ...]] = {
-    # A short, resolving major-third fall. This is the default photo cue.
-    "gentle": ((_B6, 0.022, 0.014), (_G6, 0.040, 0.0)),
+    # A clearly audible, resolving major-third fall. This is the default cue.
+    "gentle": ((_B6, 0.090, 0.035), (_G6, 0.130, 0.0)),
     # Dry high/low taps that suggest a mechanical shutter rather than a beep.
     "shutter": (
-        (2200.0, 0.010, 0.008),
-        (1800.0, 0.014, 0.009),
-        (_G6, 0.022, 0.0),
+        (2400.0, 0.020, 0.018),
+        (1750.0, 0.035, 0.0),
     ),
     # A quick G-major arpeggio for a brighter, playful confirmation.
     "sparkle": (
-        (_G6, 0.020, 0.012),
-        (_B6, 0.022, 0.012),
-        (_D7, 0.032, 0.0),
+        (_G6, 0.065, 0.025),
+        (_B6, 0.065, 0.025),
+        (_D7, 0.110, 0.0),
     ),
     # The least intrusive option: one low, very short tick.
-    "minimal": ((_G6, 0.030, 0.0),),
+    "minimal": ((_G6, 0.045, 0.0),),
     # Semantic cues used elsewhere in the shutter daemon.
-    "click": ((_G6, 0.018, 0.0),),
-    "chirp": ((_G6, 0.035, 0.020), (_B6, 0.050, 0.0)),
-    "double": ((_B6, 0.035, 0.045), (_G6, 0.045, 0.0)),
-    "alert": ((_G6, 0.070, 0.055), (_G6, 0.070, 0.0)),
+    "click": ((_G6, 0.025, 0.0),),
+    "chirp": ((_G6, 0.080, 0.030), (_B6, 0.130, 0.0)),
+    "double": ((_B6, 0.070, 0.060), (_G6, 0.100, 0.0)),
+    "alert": ((_G6, 0.130, 0.090), (_G6, 0.130, 0.0)),
+    # Deliberately long extremes for identifying passive versus active modules.
+    "pitch-test": ((1500.0, 0.400, 0.180), (2500.0, 0.400, 0.0)),
 }
 
 # Keep the old CLI name working, but make it the new gentle cue.
@@ -64,6 +69,17 @@ SOUND_ORDER = PHOTO_SOUNDS + ("chirp", "double", "alert")
 
 def clamp_volume(volume: float) -> float:
     return max(0.0, min(1.0, volume))
+
+
+def _burst_slices(frequency: float, volume: float) -> tuple[float, float]:
+    """Return carrier-on/off times that preserve the requested pitch."""
+    safe_frequency = max(1.0, frequency)
+    burst_period = max(
+        _BURST_PERIOD_SECONDS,
+        _MIN_CARRIER_CYCLES_PER_BURST / safe_frequency / volume,
+    )
+    on_slice = burst_period * volume
+    return on_slice, burst_period - on_slice
 
 
 class ShutterBuzzer:
@@ -194,8 +210,8 @@ class ShutterBuzzer:
 
         # Burst-gate the carrier so volume changes are audible on modules that
         # only hard-switch VCC to the piezo (duty cycle alone does nothing).
-        on_slice = _BURST_PERIOD_SECONDS * self._volume
-        off_slice = _BURST_PERIOD_SECONDS - on_slice
+        # Each slice includes enough complete cycles to retain the tone.
+        on_slice, off_slice = _burst_slices(frequency, self._volume)
         deadline = time.monotonic() + on_seconds
         while True:
             remaining = deadline - time.monotonic()
