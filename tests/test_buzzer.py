@@ -24,6 +24,25 @@ def load_buzzer_module():
 buzzer = load_buzzer_module()
 
 
+class FakePwm:
+    def __init__(self) -> None:
+        self.frequency: float | None = None
+        self._value = 0.0
+        self.value_history: list[float] = []
+
+    @property
+    def value(self) -> float:
+        return self._value
+
+    @value.setter
+    def value(self, next_value: float) -> None:
+        self._value = next_value
+        self.value_history.append(next_value)
+
+    def close(self) -> None:
+        return None
+
+
 class ShutterBuzzerTest(unittest.TestCase):
     def test_no_pin_disables_buzzer(self) -> None:
         device = buzzer.ShutterBuzzer(None)
@@ -73,19 +92,17 @@ class ShutterBuzzerTest(unittest.TestCase):
         self.assertLess(pattern[0][1], 0.05)
         self.assertLess(pattern[1][1], 0.05)
 
-    def test_pattern_calls_tone_helpers_in_order(self) -> None:
+    def test_pattern_plays_tones_in_order(self) -> None:
         device = buzzer.ShutterBuzzer(None)
-        device._device = MagicMock()
-        device._tone_on = MagicMock()
-        device._tone_off = MagicMock()
+        device._device = FakePwm()
+        device._play_tone = MagicMock()
 
-        device._run_pattern(((2000.0, 0.0, 0.0), (1600.0, 0.0, 0.0)))
+        device._run_pattern(((2000.0, 0.01, 0.0), (1600.0, 0.01, 0.0)))
 
         self.assertEqual(
-            [call.args[0] for call in device._tone_on.call_args_list],
-            [2000.0, 1600.0],
+            [call.args for call in device._play_tone.call_args_list],
+            [(2000.0, 0.01), (1600.0, 0.01)],
         )
-        self.assertEqual(device._tone_off.call_count, 2)
 
     def test_active_pattern_toggles_device_on_and_off(self) -> None:
         device = buzzer.ShutterBuzzer(None)
@@ -93,28 +110,51 @@ class ShutterBuzzerTest(unittest.TestCase):
         device._device = fake
         device._active = True
 
-        device._run_pattern(((2000.0, 0.0, 0.0),))
+        device._play_tone(2000.0, 0.001)
 
         fake.on.assert_called_once_with()
         fake.off.assert_called_once_with()
 
-    def test_passive_tone_uses_soft_duty_cycle(self) -> None:
-        device = buzzer.ShutterBuzzer(None, volume=0.16)
-        fake = MagicMock()
+    def test_full_volume_uses_continuous_carrier(self) -> None:
+        device = buzzer.ShutterBuzzer(None, volume=1.0)
+        fake = FakePwm()
         device._device = fake
         device._active = False
 
-        device._tone_on(1700.0)
-        self.assertEqual(fake.frequency, 1700.0)
-        self.assertEqual(fake.value, 0.16)
+        device._play_tone(1700.0, 0.002)
 
-        device._tone_off()
-        self.assertEqual(fake.value, 0)
+        self.assertEqual(fake.frequency, 1700.0)
+        self.assertIn(buzzer._CARRIER_DUTY, fake.value_history)
+        self.assertEqual(fake.value, 0.0)
+
+    def test_partial_volume_bursts_carrier(self) -> None:
+        device = buzzer.ShutterBuzzer(None, volume=0.25)
+        fake = FakePwm()
+        device._device = fake
+        device._active = False
+
+        device._play_tone(1700.0, 0.004)
+
+        self.assertEqual(fake.frequency, 1700.0)
+        self.assertGreater(fake.value_history.count(buzzer._CARRIER_DUTY), 1)
+        self.assertGreater(fake.value_history.count(0.0), 1)
+        self.assertEqual(fake.value, 0.0)
+
+    def test_zero_volume_stays_silent(self) -> None:
+        device = buzzer.ShutterBuzzer(None, volume=0.0)
+        fake = FakePwm()
+        device._device = fake
+        device._active = False
+
+        device._play_tone(1700.0, 0.002)
+
+        self.assertIsNone(fake.frequency)
+        self.assertEqual(fake.value_history, [])
 
     def test_volume_is_clamped(self) -> None:
         self.assertEqual(buzzer.clamp_volume(-1.0), 0.0)
         self.assertEqual(buzzer.clamp_volume(1.5), 1.0)
-        self.assertEqual(buzzer.clamp_volume(0.16), 0.16)
+        self.assertEqual(buzzer.clamp_volume(0.22), 0.22)
 
     def test_close_releases_device(self) -> None:
         device = buzzer.ShutterBuzzer(None)
