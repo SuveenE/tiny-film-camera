@@ -99,13 +99,19 @@ class ShutterBuzzerTest(unittest.TestCase):
         self.assertEqual(len(pattern), 2)
         self.assertGreater(pattern[0][0], pattern[1][0])
         self.assertAlmostEqual(pattern[0][0] / pattern[1][0], 1.25, delta=0.02)
-        self.assertLess(sum(step[1] + step[2] for step in pattern), 0.1)
+        self.assertLess(sum(step[1] + step[2] for step in pattern), 0.3)
 
-    def test_each_photo_sound_stays_in_module_range_and_under_150ms(self) -> None:
+    def test_each_photo_sound_stays_in_module_range_and_under_400ms(self) -> None:
         for name in buzzer.PHOTO_SOUNDS:
             pattern = buzzer.SOUNDS[name]
             self.assertTrue(all(1500.0 <= step[0] <= 2500.0 for step in pattern))
-            self.assertLess(sum(step[1] + step[2] for step in pattern), 0.15)
+            self.assertLess(sum(step[1] + step[2] for step in pattern), 0.4)
+
+    def test_pitch_test_uses_long_frequency_extremes(self) -> None:
+        pattern = buzzer.SOUNDS["pitch-test"]
+
+        self.assertEqual([step[0] for step in pattern], [1500.0, 2500.0])
+        self.assertTrue(all(step[1] >= 0.4 for step in pattern))
 
     def test_photo_ok_uses_selected_sound(self) -> None:
         device = buzzer.ShutterBuzzer(None, photo_sound="sparkle")
@@ -160,12 +166,22 @@ class ShutterBuzzerTest(unittest.TestCase):
         device._device = fake
         device._active = False
 
-        device._play_tone(1700.0, 0.004)
+        device._play_tone(1700.0, 0.040)
 
         self.assertEqual(fake.frequency, 1700.0)
         self.assertGreater(fake.value_history.count(buzzer._CARRIER_DUTY), 1)
         self.assertGreater(fake.value_history.count(0.0), 1)
         self.assertEqual(fake.value, 0.0)
+
+    def test_partial_volume_burst_contains_complete_carrier_cycles(self) -> None:
+        on_slice, off_slice = buzzer._burst_slices(1500.0, 0.16)
+
+        self.assertGreaterEqual(
+            on_slice * 1500.0,
+            buzzer._MIN_CARRIER_CYCLES_PER_BURST,
+        )
+        self.assertGreater(on_slice, 0.001)
+        self.assertGreater(off_slice, 0.0)
 
     def test_zero_volume_stays_silent(self) -> None:
         device = buzzer.ShutterBuzzer(None, volume=0.0)
