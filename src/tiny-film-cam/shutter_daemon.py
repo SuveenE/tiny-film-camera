@@ -284,9 +284,11 @@ def main() -> None:
                 awb_mode=args.awb_mode,
                 awb_lock=args.awb_lock,
             )
-            output_paths = capture_photos(settings)
+            output_paths = capture_photos(
+                settings,
+                on_captured=buzzer.photo_captured,
+            )
             LOGGER.info("Saved %s photo(s): %s", len(output_paths), output_paths)
-            buzzer.photo_ok()
         except Exception:
             LOGGER.exception("Capture failed")
             buzzer.error()

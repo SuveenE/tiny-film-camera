@@ -6,9 +6,9 @@ The shutter daemon (`src/tiny-film-cam/shutter_daemon.py`) drives these sounds:
 | Sound | When |
 |-------|------|
 | **sparkle** | Shutter daemon initialized successfully; also a photo option |
-| **minimal** | Photo saved (default; one low tick) |
-| **gentle** | Photo saved option with a descending two-note cue |
-| **shutter** | Photo saved option with two dry mechanical-style taps |
+| **minimal** | Frame captured (default; one low tick) |
+| **gentle** | Frame-captured option with a descending two-note cue |
+| **shutter** | Frame-captured option with two dry mechanical-style taps |
 | **click** | A very short acknowledgement when video recording starts |
 | **chirp** | Video recording started |
 | **double** | Video saved |
@@ -48,10 +48,10 @@ python3 src/tiny-film-cam/buzzer.py
 Or audition the four photo sounds individually:
 
 ```bash
-python3 src/tiny-film-cam/buzzer.py --sound gentle --volume 1.0
-python3 src/tiny-film-cam/buzzer.py --sound shutter --volume 1.0
-python3 src/tiny-film-cam/buzzer.py --sound sparkle --volume 1.0
-python3 src/tiny-film-cam/buzzer.py --sound minimal --volume 1.0
+python3 src/tiny-film-cam/buzzer.py --sound gentle --volume 0.35
+python3 src/tiny-film-cam/buzzer.py --sound shutter --volume 0.35
+python3 src/tiny-film-cam/buzzer.py --sound sparkle --volume 0.35
+python3 src/tiny-film-cam/buzzer.py --sound minimal --volume 0.35
 ```
 
 The old `--sound beep` name remains as an alias for `gentle`.
@@ -83,13 +83,14 @@ python3 src/tiny-film-cam/buzzer.py --sound gentle --volume 0.3
 ## Using it with the shutter
 
 No `.env` entries are required for the default wiring (GPIO 18, passive).
-With the defaults, a full-volume `sparkle` plays once when the shutter daemon
-is ready, and a full-volume `minimal` tick plays after each photo is saved.
+With the defaults, a moderate-volume `sparkle` plays once when the shutter
+daemon is ready. A moderate-volume `minimal` tick plays immediately after the
+camera captures a frame, before rotation, JPEG encoding, and disk saving.
 If an existing `.env` overrides older buzzer defaults, set:
 
 ```bash
 TINY_FILM_BUZZER_PHOTO_SOUND=minimal
-TINY_FILM_BUZZER_VOLUME=1.0
+TINY_FILM_BUZZER_VOLUME=0.35
 ```
 
 Restart the shutter service after deploying code that includes the buzzer:
@@ -121,7 +122,7 @@ python3 src/tiny-film-cam/shutter_daemon.py --no-buzzer
 | Buzzer pin | `TINY_FILM_BUZZER_PIN` | `--buzzer-pin` / `--no-buzzer` | `18` (blank = disabled) |
 | Buzzer type | `TINY_FILM_BUZZER_ACTIVE` | `--buzzer-active` / `--buzzer-passive` | passive |
 | Photo sound | `TINY_FILM_BUZZER_PHOTO_SOUND` | `--buzzer-photo-sound` | `minimal` |
-| Volume (passive) | `TINY_FILM_BUZZER_VOLUME` | `--buzzer-volume` | `1.0` (full) |
+| Volume (passive) | `TINY_FILM_BUZZER_VOLUME` | `--buzzer-volume` | `0.35` (moderate) |
 
 ## Notes
 
@@ -136,3 +137,6 @@ python3 src/tiny-film-cam/shutter_daemon.py --no-buzzer
   most of that hardware.
 - Burst volume gating retains at least three complete carrier cycles per pulse
   so low-volume playback does not mask the selected pitch.
+- Volume is burst density rather than electrical amplitude: `1.0` drives the
+  carrier continuously, while `0.35` drives it for roughly 35% of the playback
+  time. Perceived loudness is not linear and varies by buzzer module.

@@ -9,7 +9,7 @@ LOGGER = logging.getLogger("tiny_film.buzzer")
 
 # Volume is burst density (0–1), not PWM duty — transistor modules ignore
 # duty cycle and stay full-loud whenever the pin is high.
-DEFAULT_VOLUME = 1.0
+DEFAULT_VOLUME = 0.35
 DEFAULT_PHOTO_SOUND = "minimal"
 READY_SOUND = "sparkle"
 
@@ -142,9 +142,13 @@ class ShutterBuzzer:
         """Short tick when the shutter button fires."""
         self.play("click")
 
-    def photo_ok(self) -> None:
-        """Confirmation that a photo was saved."""
+    def photo_captured(self) -> None:
+        """Cue emitted immediately after the camera returns a captured frame."""
         self.play(self._photo_sound)
+
+    def photo_ok(self) -> None:
+        """Backwards-compatible alias for the photo capture cue."""
+        self.photo_captured()
 
     def video_start(self) -> None:
         """Cue that video recording has started."""

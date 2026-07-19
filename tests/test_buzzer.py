@@ -50,6 +50,7 @@ class ShutterBuzzerTest(unittest.TestCase):
         self.assertFalse(device.enabled)
         device.ready()
         device.click()
+        device.photo_captured()
         device.photo_ok()
         device.video_start()
         device.video_stop()
@@ -114,11 +115,11 @@ class ShutterBuzzerTest(unittest.TestCase):
         self.assertEqual([step[0] for step in pattern], [1500.0, 2500.0])
         self.assertTrue(all(step[1] >= 0.4 for step in pattern))
 
-    def test_photo_ok_uses_selected_sound(self) -> None:
+    def test_photo_captured_uses_selected_sound(self) -> None:
         device = buzzer.ShutterBuzzer(None, photo_sound="sparkle")
         device.play = MagicMock()
 
-        device.photo_ok()
+        device.photo_captured()
 
         device.play.assert_called_once_with("sparkle")
 
@@ -130,14 +131,22 @@ class ShutterBuzzerTest(unittest.TestCase):
 
         device.play.assert_called_once_with("sparkle")
 
-    def test_photo_defaults_to_minimal_at_full_volume(self) -> None:
+    def test_photo_defaults_to_minimal_at_moderate_volume(self) -> None:
         device = buzzer.ShutterBuzzer(None)
         device.play = MagicMock()
 
+        device.photo_captured()
+
+        self.assertEqual(buzzer.DEFAULT_VOLUME, 0.35)
+        device.play.assert_called_once_with("minimal")
+
+    def test_photo_ok_remains_an_alias(self) -> None:
+        device = buzzer.ShutterBuzzer(None)
+        device.photo_captured = MagicMock()
+
         device.photo_ok()
 
-        self.assertEqual(buzzer.DEFAULT_VOLUME, 1.0)
-        device.play.assert_called_once_with("minimal")
+        device.photo_captured.assert_called_once_with()
 
     def test_unknown_photo_sound_is_rejected(self) -> None:
         with self.assertRaisesRegex(ValueError, "Unknown photo sound"):
@@ -217,8 +226,8 @@ class ShutterBuzzerTest(unittest.TestCase):
         self.assertEqual(buzzer.clamp_volume(1.5), 1.0)
         self.assertEqual(buzzer.clamp_volume(0.16), 0.16)
 
-    def test_default_volume_is_full(self) -> None:
-        self.assertEqual(buzzer.DEFAULT_VOLUME, 1.0)
+    def test_default_volume_is_moderate(self) -> None:
+        self.assertEqual(buzzer.DEFAULT_VOLUME, 0.35)
 
     def test_close_releases_device(self) -> None:
         device = buzzer.ShutterBuzzer(None)

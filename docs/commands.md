@@ -63,8 +63,8 @@ python3 src/tiny-film-cam/buzzer.py
 
 ## Play one buzzer sound
 ```bash
-python3 src/tiny-film-cam/buzzer.py --sound sparkle --volume 1.0
-python3 src/tiny-film-cam/buzzer.py --sound minimal --volume 1.0
+python3 src/tiny-film-cam/buzzer.py --sound sparkle --volume 0.35
+python3 src/tiny-film-cam/buzzer.py --sound minimal --volume 0.35
 ```
 
 ## Check whether the buzzer can change pitch
