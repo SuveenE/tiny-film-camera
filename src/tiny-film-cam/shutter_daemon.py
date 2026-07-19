@@ -266,7 +266,6 @@ def main() -> None:
 
         try:
             LOGGER.info("Button pressed; capturing photo")
-            buzzer.click()
             settings = CaptureSettings(
                 output_dir=output_dir,
                 width=args.width,
@@ -366,6 +365,7 @@ def main() -> None:
             args.buzzer_volume,
             args.buzzer_photo_sound,
         )
+        buzzer.ready()
     elif args.no_buzzer or buzzer_pin is None:
         LOGGER.info("Buzzer feedback disabled")
 
