@@ -48,6 +48,7 @@ class ShutterBuzzerTest(unittest.TestCase):
         device = buzzer.ShutterBuzzer(None)
 
         self.assertFalse(device.enabled)
+        device.ready()
         device.click()
         device.photo_ok()
         device.video_start()
@@ -120,6 +121,23 @@ class ShutterBuzzerTest(unittest.TestCase):
         device.photo_ok()
 
         device.play.assert_called_once_with("sparkle")
+
+    def test_ready_uses_sparkle(self) -> None:
+        device = buzzer.ShutterBuzzer(None)
+        device.play = MagicMock()
+
+        device.ready()
+
+        device.play.assert_called_once_with("sparkle")
+
+    def test_photo_defaults_to_minimal_at_full_volume(self) -> None:
+        device = buzzer.ShutterBuzzer(None)
+        device.play = MagicMock()
+
+        device.photo_ok()
+
+        self.assertEqual(buzzer.DEFAULT_VOLUME, 1.0)
+        device.play.assert_called_once_with("minimal")
 
     def test_unknown_photo_sound_is_rejected(self) -> None:
         with self.assertRaisesRegex(ValueError, "Unknown photo sound"):
@@ -199,8 +217,8 @@ class ShutterBuzzerTest(unittest.TestCase):
         self.assertEqual(buzzer.clamp_volume(1.5), 1.0)
         self.assertEqual(buzzer.clamp_volume(0.16), 0.16)
 
-    def test_default_volume_is_restrained(self) -> None:
-        self.assertLessEqual(buzzer.DEFAULT_VOLUME, 0.2)
+    def test_default_volume_is_full(self) -> None:
+        self.assertEqual(buzzer.DEFAULT_VOLUME, 1.0)
 
     def test_close_releases_device(self) -> None:
         device = buzzer.ShutterBuzzer(None)

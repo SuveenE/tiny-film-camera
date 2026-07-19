@@ -8,10 +8,10 @@ import time
 LOGGER = logging.getLogger("tiny_film.buzzer")
 
 # Volume is burst density (0–1), not PWM duty — transistor modules ignore
-# duty cycle and stay full-loud whenever the pin is high. A restrained default
-# keeps the little piezo from dominating the moment.
-DEFAULT_VOLUME = 0.16
-DEFAULT_PHOTO_SOUND = "gentle"
+# duty cycle and stay full-loud whenever the pin is high.
+DEFAULT_VOLUME = 1.0
+DEFAULT_PHOTO_SOUND = "minimal"
+READY_SOUND = "sparkle"
 
 # Gate the carrier slowly enough that every "on" slice contains several
 # complete tone cycles. The old 1 ms gate produced 0.16 ms slices at the
@@ -133,6 +133,10 @@ class ShutterBuzzer:
     @property
     def enabled(self) -> bool:
         return self._device is not None
+
+    def ready(self) -> None:
+        """Confirmation that the shutter daemon initialized successfully."""
+        self.play(READY_SOUND)
 
     def click(self) -> None:
         """Short tick when the shutter button fires."""
