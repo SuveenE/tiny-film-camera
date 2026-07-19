@@ -79,17 +79,45 @@ class ShutterBuzzerTest(unittest.TestCase):
     def test_named_sounds_exist(self) -> None:
         self.assertEqual(
             tuple(buzzer.SOUND_ORDER),
-            ("click", "beep", "chirp", "alert", "double"),
+            (
+                "gentle",
+                "shutter",
+                "sparkle",
+                "minimal",
+                "chirp",
+                "double",
+                "alert",
+            ),
         )
         for name in buzzer.SOUND_ORDER:
             self.assertIn(name, buzzer.SOUNDS)
+        self.assertIs(buzzer.SOUNDS["beep"], buzzer.SOUNDS["gentle"])
 
-    def test_original_cue_frequencies(self) -> None:
-        self.assertEqual(buzzer.SOUNDS["click"][0][0], 1800.0)
-        self.assertEqual(buzzer.SOUNDS["beep"][0][0], 2000.0)
-        self.assertEqual(buzzer.SOUNDS["chirp"][0][0], 2200.0)
-        self.assertEqual(buzzer.SOUNDS["alert"][0][0], 2400.0)
-        self.assertEqual(buzzer.SOUNDS["double"][0][0], 1600.0)
+    def test_gentle_cue_is_short_descending_major_third(self) -> None:
+        pattern = buzzer.SOUNDS["gentle"]
+
+        self.assertEqual(len(pattern), 2)
+        self.assertGreater(pattern[0][0], pattern[1][0])
+        self.assertAlmostEqual(pattern[0][0] / pattern[1][0], 1.25, delta=0.02)
+        self.assertLess(sum(step[1] + step[2] for step in pattern), 0.1)
+
+    def test_each_photo_sound_stays_in_module_range_and_under_150ms(self) -> None:
+        for name in buzzer.PHOTO_SOUNDS:
+            pattern = buzzer.SOUNDS[name]
+            self.assertTrue(all(1500.0 <= step[0] <= 2500.0 for step in pattern))
+            self.assertLess(sum(step[1] + step[2] for step in pattern), 0.15)
+
+    def test_photo_ok_uses_selected_sound(self) -> None:
+        device = buzzer.ShutterBuzzer(None, photo_sound="sparkle")
+        device.play = MagicMock()
+
+        device.photo_ok()
+
+        device.play.assert_called_once_with("sparkle")
+
+    def test_unknown_photo_sound_is_rejected(self) -> None:
+        with self.assertRaisesRegex(ValueError, "Unknown photo sound"):
+            buzzer.ShutterBuzzer(None, photo_sound="siren")
 
     def test_pattern_plays_tones_in_order(self) -> None:
         device = buzzer.ShutterBuzzer(None)
@@ -153,7 +181,10 @@ class ShutterBuzzerTest(unittest.TestCase):
     def test_volume_is_clamped(self) -> None:
         self.assertEqual(buzzer.clamp_volume(-1.0), 0.0)
         self.assertEqual(buzzer.clamp_volume(1.5), 1.0)
-        self.assertEqual(buzzer.clamp_volume(0.22), 0.22)
+        self.assertEqual(buzzer.clamp_volume(0.16), 0.16)
+
+    def test_default_volume_is_restrained(self) -> None:
+        self.assertLessEqual(buzzer.DEFAULT_VOLUME, 0.2)
 
     def test_close_releases_device(self) -> None:
         device = buzzer.ShutterBuzzer(None)

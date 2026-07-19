@@ -63,7 +63,7 @@ python3 src/tiny-film-cam/buzzer.py
 
 ## Play one buzzer sound
 ```bash
-python3 src/tiny-film-cam/buzzer.py --sound beep
+python3 src/tiny-film-cam/buzzer.py --sound gentle --volume 0.16
 ```
 
 ## Install boot services

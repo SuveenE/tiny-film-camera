@@ -5,8 +5,11 @@ The shutter daemon (`src/tiny-film-cam/shutter_daemon.py`) drives these sounds:
 
 | Sound | When |
 |-------|------|
-| **click** | Shutter button fires (photo or video) |
-| **beep** | Photo saved |
+| **click** | A very short acknowledgement when the button fires |
+| **gentle** | Photo saved (default; a soft descending two-note cue) |
+| **shutter** | Photo saved option with three dry mechanical-style taps |
+| **sparkle** | Photo saved option with a quick ascending major chord |
+| **minimal** | Photo saved option with one low tick |
 | **chirp** | Video recording started |
 | **double** | Video saved |
 | **alert** | Capture or recording failed |
@@ -42,11 +45,16 @@ With the module wired, run the demo from the project root on the Pi:
 python3 src/tiny-film-cam/buzzer.py
 ```
 
-Or play one sound:
+Or audition the four photo sounds individually:
 
 ```bash
-python3 src/tiny-film-cam/buzzer.py --sound beep
+python3 src/tiny-film-cam/buzzer.py --sound gentle --volume 0.16
+python3 src/tiny-film-cam/buzzer.py --sound shutter --volume 0.16
+python3 src/tiny-film-cam/buzzer.py --sound sparkle --volume 0.16
+python3 src/tiny-film-cam/buzzer.py --sound minimal --volume 0.16
 ```
+
+The old `--sound beep` name remains as an alias for `gentle`.
 
 Default pin is BCM 18. Override with `--pin` if needed. Use `--active` only if
 you wired a simple on/off active buzzer instead.
@@ -56,8 +64,8 @@ loud while the pin is high). Loudness is controlled by bursting the tone
 on/off — lower `--volume` means shorter bursts. Compare:
 
 ```bash
-python3 src/tiny-film-cam/buzzer.py --sound beep --volume 0.12
-python3 src/tiny-film-cam/buzzer.py --sound beep --volume 0.5
+python3 src/tiny-film-cam/buzzer.py --sound gentle --volume 0.10
+python3 src/tiny-film-cam/buzzer.py --sound gentle --volume 0.3
 ```
 
 ## Using it with the shutter
@@ -91,7 +99,8 @@ python3 src/tiny-film-cam/shutter_daemon.py --no-buzzer
 |---------|---------|----------|---------|
 | Buzzer pin | `TINY_FILM_BUZZER_PIN` | `--buzzer-pin` / `--no-buzzer` | `18` (blank = disabled) |
 | Buzzer type | `TINY_FILM_BUZZER_ACTIVE` | `--buzzer-active` / `--buzzer-passive` | passive |
-| Volume (passive) | `TINY_FILM_BUZZER_VOLUME` | `--buzzer-volume` | `0.22` (burst density) |
+| Photo sound | `TINY_FILM_BUZZER_PHOTO_SOUND` | `--buzzer-photo-sound` | `gentle` |
+| Volume (passive) | `TINY_FILM_BUZZER_VOLUME` | `--buzzer-volume` | `0.16` (burst density) |
 
 ## Notes
 
@@ -101,3 +110,6 @@ python3 src/tiny-film-cam/shutter_daemon.py --no-buzzer
   confirmation and run in a separate process.
 - Tones play on a background thread, so they never delay the next capture.
 - Stay near **1.5–2.5 kHz** for this module; that is its claimed tone range.
+- A passive piezo can only make simple square-wave tones, not play sampled
+  camera audio. The presets use short timing and musical intervals to make the
+  most of that hardware.
