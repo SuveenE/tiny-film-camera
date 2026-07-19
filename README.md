@@ -48,9 +48,9 @@ The web service starts the phone app on port `8000`. The phone app and shutter
 service both save captures to `data/captures/`. The shutter service listens for
 a simple physical button on BCM GPIO 17 by default: tap it for a photo, or hold
 it to record a short video. Wire the button between BCM GPIO 17, physical pin 11,
-and any GND pin. An optional passive buzzer on BCM GPIO 18 can chirp for shutter
-events — see [docs/buzzer.md](docs/buzzer.md). Video recording (web, CLI, or
-shutter) needs `ffmpeg` installed on the Pi.
+and any GND pin. A passive buzzer on BCM GPIO 18 is enabled by default for
+shutter feedback — see [docs/buzzer.md](docs/buzzer.md). Video recording (web,
+CLI, or shutter) needs `ffmpeg` installed on the Pi.
 
 The battery service polls the Waveshare UPS HAT (C) over I2C at address `0x43`
 and writes `data/battery.json`. The web app exposes the latest reading at

@@ -11,7 +11,8 @@ The shutter daemon (`src/tiny-film-cam/shutter_daemon.py`) drives these sounds:
 | **double** | Video saved |
 | **alert** | Capture or recording failed |
 
-The buzzer is opt-in. With no pin configured, the shutter daemon stays silent.
+By default the shutter daemon uses a **passive** buzzer on **BCM GPIO 18**.
+Leave `TINY_FILM_BUZZER_PIN` blank in `.env`, or pass `--no-buzzer`, to disable.
 
 ## Hardware
 
@@ -50,16 +51,10 @@ python3 src/tiny-film-cam/buzzer.py --sound beep
 Default pin is BCM 18. Override with `--pin` if needed. Use `--active` only if
 you wired a simple on/off active buzzer instead.
 
-## Enabling it for the shutter
+## Using it with the shutter
 
-Set the pin in `.env` (see `.env.example`):
-
-```bash
-TINY_FILM_BUZZER_PIN=18
-TINY_FILM_BUZZER_ACTIVE=0   # 0 = passive PWM (this module), 1 = active
-```
-
-Then restart the shutter service:
+No `.env` entries are required for the default wiring (GPIO 18, passive).
+Restart the shutter service after deploying code that includes the buzzer:
 
 ```bash
 sudo systemctl restart tiny-film-shutter.service
@@ -68,14 +63,24 @@ sudo systemctl restart tiny-film-shutter.service
 Or run the daemon directly:
 
 ```bash
-python3 src/tiny-film-cam/shutter_daemon.py --buzzer-pin 18 --buzzer-passive
+python3 src/tiny-film-cam/shutter_daemon.py
+```
+
+To disable sound, leave the pin blank in `.env` or pass `--no-buzzer`:
+
+```bash
+TINY_FILM_BUZZER_PIN=
+```
+
+```bash
+python3 src/tiny-film-cam/shutter_daemon.py --no-buzzer
 ```
 
 ## Configuration
 
 | Setting | Env var | CLI flag | Default |
 |---------|---------|----------|---------|
-| Buzzer pin | `TINY_FILM_BUZZER_PIN` | `--buzzer-pin` | *(unset = disabled)* |
+| Buzzer pin | `TINY_FILM_BUZZER_PIN` | `--buzzer-pin` / `--no-buzzer` | `18` (blank = disabled) |
 | Buzzer type | `TINY_FILM_BUZZER_ACTIVE` | `--buzzer-active` / `--buzzer-passive` | passive |
 
 ## Notes
