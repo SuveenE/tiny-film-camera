@@ -56,6 +56,18 @@ python3 src/tiny-film-cam/buzzer.py --sound minimal --volume 0.16
 
 The old `--sound beep` name remains as an alias for `gentle`.
 
+If those four still appear to have the same pitch, run the diagnostic at full
+volume:
+
+```bash
+python3 src/tiny-film-cam/buzzer.py --sound pitch-test --volume 1.0
+```
+
+It plays a long 1.5 kHz tone followed by a long 2.5 kHz tone. A passive buzzer
+will produce two unmistakably different pitches. If both pitches sound the
+same, the connected module is an **active buzzer** with its own fixed-frequency
+oscillator; software can vary only its pulse rhythm, not its pitch.
+
 Default pin is BCM 18. Override with `--pin` if needed. Use `--active` only if
 you wired a simple on/off active buzzer instead.
 
@@ -113,3 +125,5 @@ python3 src/tiny-film-cam/shutter_daemon.py --no-buzzer
 - A passive piezo can only make simple square-wave tones, not play sampled
   camera audio. The presets use short timing and musical intervals to make the
   most of that hardware.
+- Burst volume gating retains at least three complete carrier cycles per pulse
+  so low-volume playback does not mask the selected pitch.
