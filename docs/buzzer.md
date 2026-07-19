@@ -56,9 +56,11 @@ loud while the pin is high). Loudness is controlled by bursting the tone
 on/off — lower `--volume` means shorter bursts. Compare:
 
 ```bash
-python3 src/tiny-film-cam/buzzer.py --sound shutter --volume 0.12
-python3 src/tiny-film-cam/buzzer.py --sound shutter --volume 0.5
+python3 src/tiny-film-cam/buzzer.py --sound shutter --volume 0.10
+python3 src/tiny-film-cam/buzzer.py --sound shutter --volume 0.3
 ```
+
+Cues are tuned low and soft by default (around 1.5 kHz) so they stay calm.
 
 ## Using it with the shutter
 
@@ -91,7 +93,7 @@ python3 src/tiny-film-cam/shutter_daemon.py --no-buzzer
 |---------|---------|----------|---------|
 | Buzzer pin | `TINY_FILM_BUZZER_PIN` | `--buzzer-pin` / `--no-buzzer` | `18` (blank = disabled) |
 | Buzzer type | `TINY_FILM_BUZZER_ACTIVE` | `--buzzer-active` / `--buzzer-passive` | passive |
-| Volume (passive) | `TINY_FILM_BUZZER_VOLUME` | `--buzzer-volume` | `0.22` (burst density) |
+| Volume (passive) | `TINY_FILM_BUZZER_VOLUME` | `--buzzer-volume` | `0.14` (burst density) |
 
 ## Notes
 
