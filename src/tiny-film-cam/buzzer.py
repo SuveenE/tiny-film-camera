@@ -9,7 +9,7 @@ LOGGER = logging.getLogger("tiny_film.buzzer")
 
 # Volume is burst density (0–1), not PWM duty — transistor modules ignore
 # duty cycle and stay full-loud whenever the pin is high.
-DEFAULT_VOLUME = 0.35
+DEFAULT_VOLUME = 1.0
 DEFAULT_PHOTO_SOUND = "minimal"
 READY_SOUND = "sparkle"
 
