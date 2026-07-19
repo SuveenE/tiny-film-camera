@@ -6,7 +6,7 @@ from datetime import datetime
 import fcntl
 import os
 from pathlib import Path
-from typing import Iterator, Literal
+from typing import Callable, Iterator, Literal
 
 
 Rotation = Literal[0, 90, 180, 270]
@@ -383,8 +383,30 @@ def _open_camera(Picamera2):
         ) from exc
 
 
-def capture_photos(settings: CaptureSettings = CaptureSettings()) -> list[Path]:
-    """Capture one or more still images from a Raspberry Pi Camera Module 3."""
+def _capture_and_save_image(
+    picam2,
+    settings: CaptureSettings,
+    output_path: Path,
+    on_captured: Callable[[], None] | None,
+) -> None:
+    """Capture a sensor frame, notify immediately, then process and save it."""
+    frame = picam2.capture_array("main")
+    if on_captured is not None:
+        on_captured()
+    image = _image_from_picamera_frame(frame)
+    image = _rotate_image(image, settings.rotation)
+    image.save(
+        output_path,
+        format="JPEG",
+        quality=_normalized_quality(settings.quality),
+    )
+
+
+def capture_photos(
+    settings: CaptureSettings = CaptureSettings(),
+    on_captured: Callable[[], None] | None = None,
+) -> list[Path]:
+    """Capture still images, notifying after each frame and before JPEG saving."""
     import time
 
     try:
@@ -432,13 +454,11 @@ def capture_photos(settings: CaptureSettings = CaptureSettings()) -> list[Path]:
                     if settings.bracket_settle_seconds > 0:
                         time.sleep(settings.bracket_settle_seconds)
 
-                frame = picam2.capture_array("main")
-                image = _image_from_picamera_frame(frame)
-                image = _rotate_image(image, settings.rotation)
-                image.save(
+                _capture_and_save_image(
+                    picam2,
+                    settings,
                     output_path,
-                    format="JPEG",
-                    quality=_normalized_quality(settings.quality),
+                    on_captured,
                 )
         finally:
             if started:

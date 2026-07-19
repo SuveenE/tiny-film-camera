@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import importlib.util
+from pathlib import Path
 import sys
 import unittest
-from unittest.mock import patch
-from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 import numpy as np
 from PIL import Image
@@ -115,6 +115,32 @@ class CameraRotationTest(unittest.TestCase):
         self.assertEqual(image.mode, "RGB")
         self.assertEqual(image.getpixel((0, 0)), (255, 0, 0))
         self.assertEqual(image.getpixel((1, 0)), (0, 0, 255))
+
+    def test_capture_callback_runs_before_image_processing_and_save(self) -> None:
+        events: list[str] = []
+        picam2 = MagicMock()
+        picam2.capture_array.side_effect = lambda stream: events.append(
+            "captured"
+        ) or object()
+        image = MagicMock()
+        image.save.side_effect = lambda *args, **kwargs: events.append("saved")
+
+        with (
+            patch.object(
+                camera,
+                "_image_from_picamera_frame",
+                side_effect=lambda frame: events.append("processed") or image,
+            ),
+            patch.object(camera, "_rotate_image", return_value=image),
+        ):
+            camera._capture_and_save_image(
+                picam2,
+                camera.CaptureSettings(),
+                Path("photo.jpg"),
+                lambda: events.append("sound"),
+            )
+
+        self.assertEqual(events, ["captured", "sound", "processed", "saved"])
 
     def test_rotation_90_is_clockwise(self) -> None:
         rotated = camera._rotate_image(marker_image(), 90)
