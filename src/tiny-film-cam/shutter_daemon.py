@@ -9,6 +9,7 @@ from pathlib import Path
 
 from buzzer import (
     DEFAULT_PHOTO_SOUND,
+    DEFAULT_PHOTO_VOLUME,
     DEFAULT_VOLUME,
     PHOTO_SOUNDS,
     ShutterBuzzer,
@@ -117,8 +118,17 @@ def parse_args() -> argparse.Namespace:
         type=float,
         default=env_float("TINY_FILM_BUZZER_VOLUME", DEFAULT_VOLUME),
         help=(
-            "Passive buzzer loudness 0.0–1.0 via burst density "
+            "Passive buzzer loudness for ready/video/error cues 0.0–1.0 "
             f"(default: {DEFAULT_VOLUME})."
+        ),
+    )
+    parser.add_argument(
+        "--buzzer-photo-volume",
+        type=float,
+        default=env_float("TINY_FILM_BUZZER_PHOTO_VOLUME", DEFAULT_PHOTO_VOLUME),
+        help=(
+            "Passive buzzer loudness for the photo capture cue 0.0–1.0 "
+            f"(default: {DEFAULT_PHOTO_VOLUME})."
         ),
     )
     parser.add_argument(
@@ -128,7 +138,7 @@ def parse_args() -> argparse.Namespace:
             "TINY_FILM_BUZZER_PHOTO_SOUND", DEFAULT_PHOTO_SOUND
         ),
         help=(
-            "Photo-saved cue: gentle, shutter, sparkle, or minimal "
+            "Photo capture cue: click, minimal, gentle, shutter, or sparkle "
             f"(default: {DEFAULT_PHOTO_SOUND})."
         ),
     )
@@ -244,6 +254,7 @@ def main() -> None:
         buzzer_pin,
         active=args.buzzer_active,
         volume=args.buzzer_volume,
+        photo_volume=args.buzzer_photo_volume,
         photo_sound=args.buzzer_photo_sound,
     )
 
@@ -361,11 +372,12 @@ def main() -> None:
     if buzzer.enabled:
         buzzer_kind = "active" if args.buzzer_active else "passive"
         LOGGER.info(
-            "Buzzer feedback on BCM GPIO %s (%s, volume=%.2f, photo=%s)",
+            "Buzzer feedback on BCM GPIO %s (%s, volume=%.2f, photo=%s@%.2f)",
             buzzer_pin,
             buzzer_kind,
             args.buzzer_volume,
             args.buzzer_photo_sound,
+            args.buzzer_photo_volume,
         )
         buzzer.ready()
     elif args.no_buzzer or buzzer_pin is None:

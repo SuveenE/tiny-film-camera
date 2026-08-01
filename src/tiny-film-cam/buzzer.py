@@ -9,9 +9,10 @@ LOGGER = logging.getLogger("tiny_film.buzzer")
 
 # Volume is burst density (0–1), not PWM duty — transistor modules ignore
 # duty cycle and stay full-loud whenever the pin is high.
-DEFAULT_VOLUME = 1.0
-DEFAULT_PHOTO_SOUND = "minimal"
-READY_SOUND = "sparkle"
+DEFAULT_VOLUME = 0.90
+DEFAULT_PHOTO_VOLUME = 0.30
+DEFAULT_PHOTO_SOUND = "click"
+READY_SOUND = "minimal"
 
 # Gate the carrier slowly enough that every "on" slice contains several
 # complete tone cycles. The old 1 ms gate produced 0.16 ms slices at the
@@ -33,10 +34,10 @@ _G6 = 1568.0
 _B6 = 1976.0
 _D7 = 2349.0
 
-PHOTO_SOUNDS = ("gentle", "shutter", "sparkle", "minimal")
+PHOTO_SOUNDS = ("click", "minimal", "gentle", "shutter", "sparkle")
 
 SOUNDS: dict[str, tuple[tuple[float, float, float], ...]] = {
-    # A clearly audible, resolving major-third fall. This is the default cue.
+    # A clearly audible, resolving major-third fall.
     "gentle": ((_B6, 0.090, 0.035), (_G6, 0.130, 0.0)),
     # Dry high/low taps that suggest a mechanical shutter rather than a beep.
     "shutter": (
@@ -49,9 +50,9 @@ SOUNDS: dict[str, tuple[tuple[float, float, float], ...]] = {
         (_B6, 0.065, 0.025),
         (_D7, 0.110, 0.0),
     ),
-    # The least intrusive option: one low, very short tick.
+    # Soft ready cue: one low, short tick.
     "minimal": ((_G6, 0.045, 0.0),),
-    # Semantic cues used elsewhere in the shutter daemon.
+    # Default photo cue: same pitch as minimal, even shorter.
     "click": ((_G6, 0.025, 0.0),),
     "chirp": ((_G6, 0.080, 0.030), (_B6, 0.130, 0.0)),
     "double": ((_B6, 0.070, 0.060), (_G6, 0.100, 0.0)),
@@ -64,7 +65,7 @@ SOUNDS: dict[str, tuple[tuple[float, float, float], ...]] = {
 SOUNDS["beep"] = SOUNDS["gentle"]
 
 # The no-argument hardware demo focuses on distinct sounds, not aliases.
-SOUND_ORDER = PHOTO_SOUNDS + ("chirp", "double", "alert")
+SOUND_ORDER = ("gentle", "shutter", "sparkle", "minimal", "click", "chirp", "double", "alert")
 
 
 def clamp_volume(volume: float) -> float:
@@ -98,6 +99,7 @@ class ShutterBuzzer:
         pin: int | None,
         active: bool = False,
         volume: float = DEFAULT_VOLUME,
+        photo_volume: float = DEFAULT_PHOTO_VOLUME,
         photo_sound: str = DEFAULT_PHOTO_SOUND,
     ) -> None:
         if photo_sound not in PHOTO_SOUNDS:
@@ -107,6 +109,7 @@ class ShutterBuzzer:
             )
         self._active = active
         self._volume = clamp_volume(volume)
+        self._photo_volume = clamp_volume(photo_volume)
         self._photo_sound = photo_sound
         self._device = None
         self._lock = threading.Lock()
@@ -136,15 +139,15 @@ class ShutterBuzzer:
 
     def ready(self) -> None:
         """Confirmation that the shutter daemon initialized successfully."""
-        self.play(READY_SOUND)
+        self.play(READY_SOUND, volume=self._volume)
 
     def click(self) -> None:
         """Short tick when the shutter button fires."""
-        self.play("click")
+        self.play("click", volume=self._photo_volume)
 
     def photo_captured(self) -> None:
         """Cue emitted immediately after the camera returns a captured frame."""
-        self.play(self._photo_sound)
+        self.play(self._photo_sound, volume=self._photo_volume)
 
     def photo_ok(self) -> None:
         """Backwards-compatible alias for the photo capture cue."""
@@ -152,51 +155,63 @@ class ShutterBuzzer:
 
     def video_start(self) -> None:
         """Cue that video recording has started."""
-        self.play("chirp")
+        self.play("chirp", volume=self._volume)
 
     def video_stop(self) -> None:
         """Cue that video recording finished and was saved."""
-        self.play("double")
+        self.play("double", volume=self._volume)
 
     def error(self) -> None:
         """Alert tone when capture or recording fails."""
-        self.play("alert")
+        self.play("alert", volume=self._volume)
 
-    def play(self, name: str) -> None:
+    def play(self, name: str, volume: float | None = None) -> None:
         pattern = SOUNDS.get(name)
         if pattern is None:
             raise ValueError(f"Unknown buzzer sound: {name!r}")
-        self._play(pattern)
+        self._play(pattern, volume=self._volume if volume is None else volume)
 
     def play_all(self, pause_seconds: float = 0.4) -> None:
         """Play every built-in sound once — useful for hardware bring-up."""
         for name in SOUND_ORDER:
             LOGGER.info("Playing buzzer sound %s", name)
-            self._run_pattern(SOUNDS[name])
+            self._run_pattern(SOUNDS[name], volume=self._volume)
             if pause_seconds:
                 time.sleep(pause_seconds)
 
-    def _play(self, pattern: tuple[tuple[float, float, float], ...]) -> None:
+    def _play(self, pattern: tuple[tuple[float, float, float], ...], volume: float) -> None:
         if self._device is None:
             return
         thread = threading.Thread(
-            target=self._run_pattern, args=(pattern,), daemon=True
+            target=self._run_pattern,
+            args=(pattern, clamp_volume(volume)),
+            daemon=True,
         )
         thread.start()
 
-    def _run_pattern(self, pattern: tuple[tuple[float, float, float], ...]) -> None:
+    def _run_pattern(
+        self,
+        pattern: tuple[tuple[float, float, float], ...],
+        volume: float | None = None,
+    ) -> None:
         # Serialise playback so overlapping captures don't fight over the pin.
+        play_volume = self._volume if volume is None else clamp_volume(volume)
         with self._lock:
             try:
                 for frequency, on_seconds, gap_seconds in pattern:
-                    self._play_tone(frequency, on_seconds)
+                    self._play_tone(frequency, on_seconds, volume=play_volume)
                     if gap_seconds:
                         time.sleep(gap_seconds)
             except Exception:
                 LOGGER.exception("Buzzer playback failed")
                 self._tone_off()
 
-    def _play_tone(self, frequency: float, on_seconds: float) -> None:
+    def _play_tone(
+        self,
+        frequency: float,
+        on_seconds: float,
+        volume: float | None = None,
+    ) -> None:
         if self._device is None or on_seconds <= 0:
             return
         if self._active:
@@ -205,12 +220,13 @@ class ShutterBuzzer:
             self._device.off()
             return
 
-        if self._volume <= 0:
+        play_volume = self._volume if volume is None else clamp_volume(volume)
+        if play_volume <= 0:
             time.sleep(on_seconds)
             return
 
         self._device.frequency = max(1.0, frequency)
-        if self._volume >= 1.0:
+        if play_volume >= 1.0:
             self._device.value = _CARRIER_DUTY
             time.sleep(on_seconds)
             self._tone_off()
@@ -219,7 +235,7 @@ class ShutterBuzzer:
         # Burst-gate the carrier so volume changes are audible on modules that
         # only hard-switch VCC to the piezo (duty cycle alone does nothing).
         # Each slice includes enough complete cycles to retain the tone.
-        on_slice, off_slice = _burst_slices(frequency, self._volume)
+        on_slice, off_slice = _burst_slices(frequency, play_volume)
         deadline = time.monotonic() + on_seconds
         while True:
             remaining = deadline - time.monotonic()
