@@ -5,11 +5,11 @@ The shutter daemon (`src/tiny-film-cam/shutter_daemon.py`) drives these sounds:
 
 | Sound | When |
 |-------|------|
-| **sparkle** | Shutter daemon initialized successfully; also a photo option |
-| **minimal** | Frame captured (default; one low tick) |
+| **minimal** | Shutter daemon initialized successfully (default ready cue) |
+| **click** | Frame captured (default; shorter/softer tick than minimal) |
 | **gentle** | Frame-captured option with a descending two-note cue |
 | **shutter** | Frame-captured option with two dry mechanical-style taps |
-| **click** | A very short acknowledgement when video recording starts |
+| **sparkle** | Frame-captured option with a bright three-note arpeggio |
 | **chirp** | Video recording started |
 | **double** | Video saved |
 | **alert** | Capture or recording failed |
@@ -83,14 +83,15 @@ python3 src/tiny-film-cam/buzzer.py --sound gentle --volume 0.3
 ## Using it with the shutter
 
 No `.env` entries are required for the default wiring (GPIO 18, passive).
-With the defaults, a full-volume `sparkle` plays once when the shutter daemon
-is ready. A full-volume `minimal` tick plays immediately after the camera
-captures a frame, before rotation, JPEG encoding, and disk saving.
+With the defaults, `minimal` at volume `0.90` plays once when the shutter
+daemon is ready. A softer `click` at volume `0.30` plays immediately after the
+camera returns a frame, before rotation, JPEG encoding, and disk saving.
 If an existing `.env` overrides older buzzer defaults, set:
 
 ```bash
-TINY_FILM_BUZZER_PHOTO_SOUND=minimal
-TINY_FILM_BUZZER_VOLUME=1.0
+TINY_FILM_BUZZER_PHOTO_SOUND=click
+TINY_FILM_BUZZER_VOLUME=0.90
+TINY_FILM_BUZZER_PHOTO_VOLUME=0.30
 ```
 
 Restart the shutter service after deploying code that includes the buzzer:
@@ -121,8 +122,9 @@ python3 src/tiny-film-cam/shutter_daemon.py --no-buzzer
 |---------|---------|----------|---------|
 | Buzzer pin | `TINY_FILM_BUZZER_PIN` | `--buzzer-pin` / `--no-buzzer` | `18` (blank = disabled) |
 | Buzzer type | `TINY_FILM_BUZZER_ACTIVE` | `--buzzer-active` / `--buzzer-passive` | passive |
-| Photo sound | `TINY_FILM_BUZZER_PHOTO_SOUND` | `--buzzer-photo-sound` | `minimal` |
-| Volume (passive) | `TINY_FILM_BUZZER_VOLUME` | `--buzzer-volume` | `1.0` (full) |
+| Photo sound | `TINY_FILM_BUZZER_PHOTO_SOUND` | `--buzzer-photo-sound` | `click` |
+| Ready/video volume | `TINY_FILM_BUZZER_VOLUME` | `--buzzer-volume` | `0.90` |
+| Photo volume | `TINY_FILM_BUZZER_PHOTO_VOLUME` | `--buzzer-photo-volume` | `0.30` |
 
 ## Notes
 
