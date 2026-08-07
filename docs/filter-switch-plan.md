@@ -4,8 +4,8 @@
 
 Use a physical three-position selector for the default photo looks:
 
-- left: **Warm**
-- centre: **Black & white**
+- left: **Black & white**
+- centre: **Current**
 - right: **Cold**
 
 The selected look is baked into new JPEGs from both the physical shutter and
@@ -49,8 +49,8 @@ These pins avoid the existing shutter (BCM 17), buzzer (BCM 18), and UPS I2C
 
 | GPIO 27 | GPIO 22 | Selection |
 | --- | --- | --- |
-| LOW | HIGH | Warm |
-| HIGH | HIGH | Black & white |
+| LOW | HIGH | Black & white |
+| HIGH | HIGH | Current |
 | HIGH | LOW | Cold |
 | LOW | LOW | invalid wiring/state |
 
@@ -79,7 +79,7 @@ cache immediately before each photo.
 
 Use a short debounce window and retain the last valid selection during a switch
 transition. If the service/cache is unavailable, use a clearly reported,
-configurable fallback (initially Warm) rather than guessing from stale GPIO
+configurable fallback (initially Current) rather than guessing from stale GPIO
 data.
 
 ## Delivery sequence
