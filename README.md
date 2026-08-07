@@ -1,6 +1,6 @@
 # tiny-film-camera
 
-<img src="assets/v0/v0-build.jpg" alt="V0 build of the tiny-film camera" width="280" />
+<img src="assets/v0/assembled-camera.jpg" alt="V0 build of the tiny-film camera" width="280" />
 
 v0 build
 

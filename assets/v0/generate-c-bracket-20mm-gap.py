@@ -4,8 +4,8 @@
 Bottom pad hole 2.1mm, top pad hole 2.8mm (M2.5 clearance).
 All edges filleted for smooth printing.
 
-Run: python3 assets/generate_c_bracket_20mm.py
-Output: assets/c_bracket_spacer_20mm_2.1_2.8.stl
+Run: python3 assets/v0/generate-c-bracket-20mm-gap.py
+Output: assets/v0/c-bracket-20mm-gap-2.1mm-2.8mm-holes.stl
 """
 
 import cadquery as cq
@@ -77,7 +77,9 @@ cut2.Build()
 final = cq.Workplane().add(Shape(cut2.Shape()))
 
 # Export
-output_path = Path(__file__).parent / "c_bracket_spacer_20mm_2.1_2.8.stl"
+output_path = (
+    Path(__file__).parent / "c-bracket-20mm-gap-2.1mm-2.8mm-holes.stl"
+)
 cq.exporters.export(final, str(output_path), tolerance=0.05, angularTolerance=0.5)
 
 print(f"Exported: {output_path}")

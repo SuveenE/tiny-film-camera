@@ -3,8 +3,8 @@
 Symmetric design: 6.5x6.5mm pads, 1.5mm thick, 25mm gap, 2mm wall.
 All edges filleted for smooth printing. Holes through each pad for M2.5 screws.
 
-Run: python3 assets/generate_c_bracket.py
-Output: assets/c_bracket_spacer.stl
+Run: python3 assets/v0/generate-c-bracket-25mm-gap.py
+Output: assets/v0/c-bracket-25mm-gap-2.8mm-holes.stl
 """
 
 import cadquery as cq
@@ -75,7 +75,7 @@ cut2.Build()
 final = cq.Workplane().add(Shape(cut2.Shape()))
 
 # Export
-output_path = Path(__file__).parent / "c_bracket_spacer.stl"
+output_path = Path(__file__).parent / "c-bracket-25mm-gap-2.8mm-holes.stl"
 cq.exporters.export(final, str(output_path), tolerance=0.05, angularTolerance=0.5)
 
 print(f"Exported: {output_path}")
