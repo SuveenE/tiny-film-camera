@@ -1,99 +1,82 @@
-# tiny-film-camera
+# Tiny Film Camera
 
-<img src="assets/v1/v1-design.png" alt="V1 design of the tiny-film camera" width="280" />
+An open-source digital camera built around the Raspberry Pi Zero 2 W and Camera
+Module 3. Tiny Film pairs a physical shutter with film-inspired JPEG looks and a
+phone-friendly local gallery—without sending your photos to the cloud.
 
-v1 design
+<p align="center">
+  <img src="assets/v1/v1-design.png" alt="Tiny Film v1 camera enclosure" width="560" />
+</p>
 
-<img src="assets/v0/assembled-camera.jpg" alt="V0 build of the tiny-film camera" width="280" />
+## What it does
 
-v0 build
+- Tap the physical shutter for a photo; hold it for a short video.
+- Choose Black & white, Current, or Cold with a three-position hardware switch.
+- Capture, browse, download, and delete photos from a phone on the same Wi-Fi.
+- Monitor the Waveshare UPS battery from the web interface.
+- Apply configurable exposure, white-balance, focus, rotation, and JPEG settings.
+- Start the web app and hardware daemons automatically with systemd.
 
-## Phone web app
+## Hardware
 
-Run the local capture browser from the project root:
+- Raspberry Pi Zero 2 W
+- Raspberry Pi Camera Module 3
+- Waveshare UPS HAT (C)
+- Momentary shutter button
+- Optional passive buzzer and SS23D32 three-position switch
+- 3D-printed enclosure from [`assets/`](assets/README.md)
+
+See the complete [bill of materials](docs/bom.md) and [setup guide](docs/setup.md).
+
+## Quick start
+
+On a Raspberry Pi running Raspberry Pi OS:
 
 ```bash
-python3 src/tiny-film-cam/web.py
-```
+git clone https://github.com/SuveenE/tiny-film-camera.git
+cd tiny-film-camera
 
-Then open `http://<pi-ip>:8000` from a phone on the same Wi-Fi network.
-Tap **Take Photo** to capture a still, or **Record 10s** to capture a short
-video clip. Both appear in the gallery below.
+sudo apt update
+sudo apt install -y \
+  python3-picamera2 python3-pil python3-gpiozero python3-smbus \
+  i2c-tools ffmpeg
 
-## Boot services
-
-Install the web app, physical shutter, battery monitor, and photo-filter switch
-services on the Raspberry Pi:
-
-```bash
+cp .env.example .env
 ./scripts/install_service.sh --enable-now
 ```
 
-After pulling new changes, restart the services:
+Open `http://<pi-ip>:8000` from a phone on the same Wi-Fi network. Captures are
+saved under `data/captures/`.
+
+> [!WARNING]
+> The web interface has no authentication. Use it only on a trusted local
+> network and do not expose port `8000` to the internet.
+
+## Use it
+
+Take a photo or record a ten-second video from the command line:
 
 ```bash
-git pull
-sudo systemctl restart tiny-film-web.service tiny-film-shutter.service tiny-film-battery.service tiny-film-filter.service
+python3 src/tiny-film-cam/capture.py
+python3 src/tiny-film-cam/record.py --duration 10
 ```
 
-Check service status:
+Customize the camera, GPIO pins, filters, battery calibration, and service
+settings in [`.env.example`](.env.example), then copy the values you need into
+your local `.env`.
 
-```bash
-sudo systemctl status tiny-film-web.service tiny-film-shutter.service tiny-film-battery.service tiny-film-filter.service --no-pager
-```
+## Build guides
 
-Follow live service logs:
-
-```bash
-sudo journalctl -u tiny-film-web.service -u tiny-film-shutter.service -u tiny-film-battery.service -u tiny-film-filter.service -f
-```
-
-The web service starts the phone app on port `8000`. The phone app and shutter
-service both save captures to `data/captures/`. The shutter service listens for
-a simple physical button on BCM GPIO 17 by default: tap it for a photo, or hold
-it to record a short video. Wire the button between BCM GPIO 17, physical pin 11,
-and any GND pin. A passive buzzer on BCM GPIO 18 is enabled by default for
-shutter feedback — see [docs/buzzer.md](docs/buzzer.md). Video recording (web,
-CLI, or shutter) needs `ffmpeg` installed on the Pi.
-
-The battery service polls the Waveshare UPS HAT (C) over I2C at address `0x43`
-and writes `data/battery.json`. The web app exposes the latest reading at
-`GET /api/battery`, including percent remaining, voltage, current, power, and
-charging state. The percent is a voltage-derived estimate, so it can read high
-while the HAT is plugged into USB power.
-
-An optional SS23D32 three-position switch can select Black & white, the current
-look, or Cold for photos taken from either shutter path. The web app displays
-the live selection and the look used for each photo. The switch uses BCM GPIO
-27 and 22 with internal pull-ups, so no external resistors are needed. See
-[docs/filter-switch.md](docs/filter-switch.md) for wiring and the live GPIO test
-command.
-
-To change the button pin or capture settings, copy `.env.example` to `.env` and
-edit the `TINY_FILM_*` values.
-
-For a more film-friendly source capture, start by testing:
-
-```bash
-python3 src/tiny-film-cam/capture.py \
-  --sharpness 0.3 \
-  --contrast 0.85 \
-  --saturation 0.9 \
-  --ev -0.7 \
-  --awb-mode daylight \
-  --rotation 180
-```
-
-For highlight safety, capture a bracket from one warmed-up camera session:
-
-```bash
-python3 src/tiny-film-cam/capture.py \
-  --exposure-brackets 0,-0.7,-1.0 \
-  --awb-lock
-```
+- [Camera and Raspberry Pi setup](docs/setup.md)
+- [Physical shutter](docs/shutter-button.md)
+- [Passive buzzer](docs/buzzer.md)
+- [Photo-filter switch](docs/filter-switch.md)
+- [Commands and service management](docs/commands.md)
+- [Troubleshooting](docs/debug.md)
+- [Enclosure and printable assets](assets/README.md)
 
 ## License
 
-Code and original CAD in this repo are [MIT](LICENSE). Third-party Printables
-case STLs keep their upstream Creative Commons licenses — see
-[assets/README.md](assets/README.md).
+Code and original CAD are available under the [MIT License](LICENSE).
+Third-party enclosure models retain their upstream Creative Commons licenses;
+see [`assets/README.md`](assets/README.md) for attribution.
