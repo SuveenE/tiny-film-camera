@@ -1,68 +1,78 @@
-# Photo filter switch
+# Set up the photo-filter switch
 
-The SS23D32 three-position switch selects **Black & white**, the **current**
-camera look, or **Cold**. The selected look is baked into JPEGs taken from the
-physical shutter or web capture button. Videos remain unchanged.
+The SS23D32 switch selects **Black & white**, **Current**, or **Cold** for new
+photos. Videos are unchanged.
 
-## Wiring
+## 1. Identify the terminals
 
-Power off the Pi before wiring. Use one row of three switch terminals:
+Power off and unplug the Pi. Choose either row of three switch terminals:
 
 ```text
-outer A ── BCM GPIO 27 (physical pin 13)
-common  ── GND         (physical pin 14)
-outer B ── BCM GPIO 22 (physical pin 15)
+outer A    common    outer B
+unused     unused    unused
 ```
 
-Leave the second row of three terminals disconnected. The service enables the
-Pi's internal pull-up resistors, so no external resistor and no 3.3 V/5 V wire
-are needed.
+With a multimeter in continuity mode, confirm that `common` connects to one
+outer terminal at each end position and neither outer terminal in the centre.
 
-| GPIO 27 | GPIO 22 | Default selection |
+## 2. Wire one row
+
+| Switch terminal | Raspberry Pi Zero 2 W |
+| --- | --- |
+| outer A | BCM GPIO 27, physical pin 13 |
+| common | GND, physical pin 14 |
+| outer B | BCM GPIO 22, physical pin 15 |
+
+Leave the second row disconnected. **No resistor is required** because the code
+enables the Pi's internal pull-ups. Do not connect the switch to 3.3 V or 5 V.
+
+## 3. Test the switch
+
+Boot the Pi, open the project directory, and install `gpiozero` if needed:
+
+```bash
+sudo apt install -y python3-gpiozero
+sudo systemctl stop tiny-film-filter.service 2>/dev/null || true
+python3 src/tiny-film-cam/filter_switch_test.py
+```
+
+Move the switch through all three positions. The expected readings are:
+
+| GPIO 27 | GPIO 22 | Filter |
 | --- | --- | --- |
 | LOW | HIGH | Black & white |
 | HIGH | HIGH | Current |
 | HIGH | LOW | Cold |
-| LOW | LOW | invalid wiring/state |
 
-The handle can operate opposite the contacted terminal. Swap the left/right
-configuration values if the physical order is reversed.
+Press `Ctrl+C` when finished. `LOW / LOW` indicates incorrect wiring.
 
-## Test before enabling the service
+If Black & white and Cold are physically reversed, add this to `.env` rather
+than resoldering:
 
-```bash
-sudo systemctl stop tiny-film-filter.service
-python3 src/tiny-film-cam/filter_switch_test.py
+```dotenv
+TINY_FILM_FILTER_LEFT=cold
+TINY_FILM_FILTER_RIGHT=black_and_white
 ```
 
-Move through all three positions and confirm the printed GPIO levels and
-selection. Press `Ctrl+C` when finished. Start the service again with:
+## 4. Install and verify the service
 
 ```bash
-sudo systemctl start tiny-film-filter.service
+./scripts/install_service.sh --enable-now
+sudo systemctl status tiny-film-filter.service --no-pager
+curl -s http://localhost:8000/api/filter | python3 -m json.tool
 ```
 
-The service writes the debounced state to `data/filter-state.json`. For a local
-test without GPIO hardware:
+The API should report the current `position`, `selection`, and `active_filter`.
+Move the switch and rerun the `curl` command to verify each position.
+
+## 5. Test a photo
+
+Open `http://<pi-ip>:8000`. Confirm that the **Photo filter** badge follows the
+switch, then take one photo in each position. The gallery should show the filter
+used for every photo.
+
+For service logs:
 
 ```bash
-TINY_FILM_FILTER_SIMULATE_POSITION=center ./scripts/run_filter_switch.sh
+sudo journalctl -u tiny-film-filter.service -f
 ```
-
-The web page reads the state from `GET /api/filter`, displays the active photo
-filter, and records the filter ID/version beside every new JPEG. If the switch
-state is missing, stale, invalid, or unknown, captures use **Current** and the
-web badge reports that it is using a fallback.
-
-The filters can also be exercised without the switch:
-
-```bash
-python3 src/tiny-film-cam/capture.py --photo-filter black_and_white
-python3 src/tiny-film-cam/capture.py --photo-filter current
-python3 src/tiny-film-cam/capture.py --photo-filter cold
-```
-
-## Configuration
-
-The defaults are in `.env.example`. `TINY_FILM_FILTER_LEFT` and
-`TINY_FILM_FILTER_RIGHT` can be swapped without rewiring the switch.
