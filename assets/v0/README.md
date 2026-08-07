@@ -14,6 +14,12 @@ are easy to identify. Dimensions are in millimetres.
 These models retain their upstream Creative Commons licences and attribution;
 see the parent [`assets/README.md`](../README.md).
 
+## Additional case part
+
+| File | Purpose |
+| --- | --- |
+| `pi-camera-top-cover-v0.stl` | Updated v0 Raspberry Pi camera top cover |
+
 ## C-bracket spacers
 
 | Printable STL | Editable source | Generator |

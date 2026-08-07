@@ -8,12 +8,14 @@ models keep their upstream licenses, listed below.
 
 ## v1 assets
 
-Current enclosure parts and a short camera demo:
+Current enclosure parts, reference renders, and a compressed CAD demo:
 
-- `v1/bottom-cover-aug5-v2.stl` — bottom cover
-- `v1/cam-cover-aug5.stl` — camera cover
-- `v1/top-cover-aug5.stl` — top cover
-- `v1/cam-demo-1.mov` — camera demo video
+- `v1/bottom-cover-v1.stl` — bottom cover
+- `v1/camera-cover-v1.stl` — camera cover
+- `v1/top-cover-v1.stl` — top cover
+- `v1/v1-design.png` — assembled enclosure render
+- `v1/v1-cad.png` — CAD workspace render
+- `v1/cad-demo-v1.mp4` — short, web-friendly CAD model demo
 
 ## Third-party models
 
