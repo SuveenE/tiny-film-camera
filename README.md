@@ -18,8 +18,8 @@ video clip. Both appear in the gallery below.
 
 ## Boot services
 
-Install the web app, physical shutter, and battery monitor services on the
-Raspberry Pi:
+Install the web app, physical shutter, battery monitor, and photo-filter switch
+services on the Raspberry Pi:
 
 ```bash
 ./scripts/install_service.sh --enable-now
@@ -29,19 +29,19 @@ After pulling new changes, restart the services:
 
 ```bash
 git pull
-sudo systemctl restart tiny-film-web.service tiny-film-shutter.service tiny-film-battery.service
+sudo systemctl restart tiny-film-web.service tiny-film-shutter.service tiny-film-battery.service tiny-film-filter.service
 ```
 
 Check service status:
 
 ```bash
-sudo systemctl status tiny-film-web.service tiny-film-shutter.service tiny-film-battery.service --no-pager
+sudo systemctl status tiny-film-web.service tiny-film-shutter.service tiny-film-battery.service tiny-film-filter.service --no-pager
 ```
 
 Follow live service logs:
 
 ```bash
-sudo journalctl -u tiny-film-web.service -u tiny-film-shutter.service -u tiny-film-battery.service -f
+sudo journalctl -u tiny-film-web.service -u tiny-film-shutter.service -u tiny-film-battery.service -u tiny-film-filter.service -f
 ```
 
 The web service starts the phone app on port `8000`. The phone app and shutter
@@ -57,6 +57,11 @@ and writes `data/battery.json`. The web app exposes the latest reading at
 `GET /api/battery`, including percent remaining, voltage, current, power, and
 charging state. The percent is a voltage-derived estimate, so it can read high
 while the HAT is plugged into USB power.
+
+An optional SS23D32 three-position switch can select Black & white, the current
+look, or Cold for photos. It uses BCM GPIO 27 and 22 with internal pull-ups, so
+no external resistors are needed. See [docs/filter-switch.md](docs/filter-switch.md)
+for wiring and the live GPIO test command.
 
 To change the button pin or capture settings, copy `.env.example` to `.env` and
 edit the `TINY_FILM_*` values.

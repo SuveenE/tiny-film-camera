@@ -61,7 +61,7 @@ install_service() {
 }
 
 if [[ ${PRINT_ONLY} -eq 1 ]]; then
-  for name in tiny-film-web tiny-film-shutter tiny-film-battery; do
+  for name in tiny-film-web tiny-film-shutter tiny-film-battery tiny-film-filter; do
     echo "# ${name}.service"
     render_service "${PROJECT_ROOT}/deploy/${name}.service"
     echo
@@ -72,21 +72,24 @@ fi
 chmod +x \
   "${PROJECT_ROOT}/scripts/run_web.sh" \
   "${PROJECT_ROOT}/scripts/run_shutter.sh" \
-  "${PROJECT_ROOT}/scripts/run_battery.sh"
+  "${PROJECT_ROOT}/scripts/run_battery.sh" \
+  "${PROJECT_ROOT}/scripts/run_filter_switch.sh"
 
 install_service tiny-film-web
 install_service tiny-film-shutter
 install_service tiny-film-battery
+install_service tiny-film-filter
 sudo systemctl daemon-reload
 
 if [[ ${ENABLE_NOW} -eq 1 ]]; then
   sudo systemctl enable --now \
     tiny-film-web.service \
     tiny-film-shutter.service \
-    tiny-film-battery.service
+    tiny-film-battery.service \
+    tiny-film-filter.service
 else
   echo "Enable on boot:"
-  echo "  sudo systemctl enable --now tiny-film-web.service tiny-film-shutter.service tiny-film-battery.service"
+  echo "  sudo systemctl enable --now tiny-film-web.service tiny-film-shutter.service tiny-film-battery.service tiny-film-filter.service"
 fi
 
 echo "Web status:"
@@ -95,5 +98,7 @@ echo "Shutter status:"
 echo "  sudo systemctl status tiny-film-shutter.service --no-pager"
 echo "Battery status:"
 echo "  sudo systemctl status tiny-film-battery.service --no-pager"
+echo "Filter switch status:"
+echo "  sudo systemctl status tiny-film-filter.service --no-pager"
 echo "Logs:"
-echo "  sudo journalctl -u tiny-film-web.service -u tiny-film-shutter.service -u tiny-film-battery.service -f"
+echo "  sudo journalctl -u tiny-film-web.service -u tiny-film-shutter.service -u tiny-film-battery.service -u tiny-film-filter.service -f"
