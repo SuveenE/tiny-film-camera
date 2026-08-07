@@ -29,8 +29,8 @@ hole_d_bottom = 2.1
 hole_d_top = 2.8
 fillet_r = 0.6
 
-total_h = pad_t + gap + pad_t   # 23
-total_d = pad_len + wall         # 8.5
+total_h = pad_t + gap + pad_t  # 23
+total_d = pad_len + wall  # 8.5
 
 # C-profile in XY, extruded along Z
 pts = [
@@ -44,12 +44,7 @@ pts = [
     (0, pad_t),
 ]
 
-bracket = (
-    cq.Workplane("XY")
-    .polyline(pts)
-    .close()
-    .extrude(pad_w)
-)
+bracket = cq.Workplane("XY").polyline(pts).close().extrude(pad_w)
 
 # Fillet all edges for smooth printing
 solid = bracket.val().wrapped
@@ -77,9 +72,7 @@ cut2.Build()
 final = cq.Workplane().add(Shape(cut2.Shape()))
 
 # Export
-output_path = (
-    Path(__file__).parent / "c-bracket-20mm-gap-2.1mm-2.8mm-holes.stl"
-)
+output_path = Path(__file__).parent / "c-bracket-20mm-gap-2.1mm-2.8mm-holes.stl"
 cq.exporters.export(final, str(output_path), tolerance=0.05, angularTolerance=0.5)
 
 print(f"Exported: {output_path}")

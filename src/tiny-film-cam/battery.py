@@ -152,11 +152,17 @@ class INA219:
 
     def current_a(self) -> float:
         self.write_register(_REG_CALIBRATION, self.calibration.value)
-        return signed_16bit(self.read_register(_REG_CURRENT)) * self.calibration.current_lsb_ma / 1000.0
+        return (
+            signed_16bit(self.read_register(_REG_CURRENT))
+            * self.calibration.current_lsb_ma
+            / 1000.0
+        )
 
     def power_w(self) -> float:
         self.write_register(_REG_CALIBRATION, self.calibration.value)
-        return signed_16bit(self.read_register(_REG_POWER)) * self.calibration.power_lsb_w
+        return (
+            signed_16bit(self.read_register(_REG_POWER)) * self.calibration.power_lsb_w
+        )
 
 
 def read_ups_hat(
@@ -203,7 +209,9 @@ def read_ups_hat(
     }
 
 
-def unavailable_battery_payload(error: str, include_timestamp: bool = True) -> dict[str, object]:
+def unavailable_battery_payload(
+    error: str, include_timestamp: bool = True
+) -> dict[str, object]:
     payload: dict[str, object] = {
         "ok": False,
         "source": "waveshare-ups-hat-c",
@@ -250,7 +258,9 @@ def battery_status_from_cache(project_root: Path) -> dict[str, object]:
 
     timestamp = payload.get("timestamp_unix")
     if isinstance(timestamp, (int, float)):
-        stale_seconds = env_float("TINY_FILM_BATTERY_STALE_SECONDS", DEFAULT_STALE_SECONDS)
+        stale_seconds = env_float(
+            "TINY_FILM_BATTERY_STALE_SECONDS", DEFAULT_STALE_SECONDS
+        )
         payload["age_seconds"] = round(max(0.0, time.time() - float(timestamp)), 1)
         payload["stale"] = payload["age_seconds"] > stale_seconds
     else:

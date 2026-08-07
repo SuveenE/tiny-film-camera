@@ -27,8 +27,8 @@ wall = 2.0
 hole_d = 2.8
 fillet_r = 0.6
 
-total_h = pad_t + gap + pad_t   # 28
-total_d = pad_len + wall         # 8.5
+total_h = pad_t + gap + pad_t  # 28
+total_d = pad_len + wall  # 8.5
 
 # C-profile in XY, extruded along Z
 pts = [
@@ -42,12 +42,7 @@ pts = [
     (0, pad_t),
 ]
 
-bracket = (
-    cq.Workplane("XY")
-    .polyline(pts)
-    .close()
-    .extrude(pad_w)
-)
+bracket = cq.Workplane("XY").polyline(pts).close().extrude(pad_w)
 
 # Fillet all edges for smooth printing
 solid = bracket.val().wrapped
@@ -84,6 +79,6 @@ print(f"Overall: {total_d} x {total_h} x {pad_w} mm")
 print(f"Pads: {pad_len} x {pad_w} x {pad_t} mm")
 print(f"Gap: {gap} mm | Wall: {wall} mm")
 print(f"Fillet: {fillet_r} mm on all edges")
-print(f"Hole: {hole_d} mm centered at ({pad_len/2}, {pad_w/2}) on each pad")
+print(f"Hole: {hole_d} mm centered at ({pad_len / 2}, {pad_w / 2}) on each pad")
 print()
 print("Preview: drag .stl into https://www.viewstl.com/")

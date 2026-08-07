@@ -65,7 +65,9 @@ def iter_capture_images(project_root: Path) -> list[Path]:
     )
 
 
-def get_capture_image_by_relative_path(project_root: Path, relative_path: str) -> Path | None:
+def get_capture_image_by_relative_path(
+    project_root: Path, relative_path: str
+) -> Path | None:
     root = captures_root(project_root)
     decoded_relative = unquote(relative_path).lstrip("/")
     candidate = (root / decoded_relative).resolve()
@@ -152,7 +154,9 @@ def remove_empty_capture_dirs(project_root: Path, start: Path) -> None:
         current = current.parent
 
 
-def delete_capture_image(project_root: Path, relative_path: str) -> dict[str, object] | None:
+def delete_capture_image(
+    project_root: Path, relative_path: str
+) -> dict[str, object] | None:
     image_path = get_capture_image_by_relative_path(project_root, relative_path)
     if image_path is None:
         return None
@@ -197,7 +201,11 @@ def build_device_details(project_root: Path, port: int) -> dict[str, object]:
     ip_address = local_ip_address()
     port_suffix = "" if port == 80 else f":{port}"
     images = iter_capture_images(project_root)
-    latest = images[0].relative_to(captures_root(project_root)).as_posix() if images else None
+    latest = (
+        images[0].relative_to(captures_root(project_root)).as_posix()
+        if images
+        else None
+    )
     return {
         "hostname": hostname,
         "ip_address": ip_address,
@@ -1031,7 +1039,9 @@ def build_handler(project_root: Path, port: int):
 
         def _serve_capture(self, image_path: Path, as_attachment: bool = True) -> None:
             body = image_path.read_bytes()
-            content_type = mimetypes.guess_type(image_path.name)[0] or "application/octet-stream"
+            content_type = (
+                mimetypes.guess_type(image_path.name)[0] or "application/octet-stream"
+            )
             headers = {}
             if as_attachment:
                 headers["Content-Disposition"] = attachment_header(image_path.name)
@@ -1048,7 +1058,9 @@ def build_handler(project_root: Path, port: int):
                 return
 
             stat = image_path.stat()
-            content_type = mimetypes.guess_type(image_path.name)[0] or "application/octet-stream"
+            content_type = (
+                mimetypes.guess_type(image_path.name)[0] or "application/octet-stream"
+            )
             etag = f'"{image_path.name}-{stat.st_mtime_ns}-{stat.st_size}"'
             if self.headers.get("If-None-Match") == etag:
                 self.send_response(HTTPStatus.NOT_MODIFIED)
@@ -1058,7 +1070,9 @@ def build_handler(project_root: Path, port: int):
 
             self.send_response(HTTPStatus.OK)
             self.send_header("Content-Type", content_type)
-            self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+            self.send_header(
+                "Cache-Control", "no-store, no-cache, must-revalidate, max-age=0"
+            )
             self.send_header("Content-Length", str(stat.st_size))
             self.send_header("ETag", etag)
             self.send_header("Last-Modified", formatdate(stat.st_mtime, usegmt=True))
@@ -1097,7 +1111,9 @@ def build_handler(project_root: Path, port: int):
 
             if request_path.startswith("/image/captures/"):
                 relative_path = request_path[len("/image/captures/") :]
-                image_path = get_capture_image_by_relative_path(project_root, relative_path)
+                image_path = get_capture_image_by_relative_path(
+                    project_root, relative_path
+                )
                 if image_path is None:
                     self.send_error(HTTPStatus.NOT_FOUND, "Capture not found")
                     return
@@ -1106,7 +1122,9 @@ def build_handler(project_root: Path, port: int):
 
             if request_path.startswith("/download/captures/"):
                 relative_path = request_path[len("/download/captures/") :]
-                image_path = get_capture_image_by_relative_path(project_root, relative_path)
+                image_path = get_capture_image_by_relative_path(
+                    project_root, relative_path
+                )
                 if image_path is None:
                     self.send_error(HTTPStatus.NOT_FOUND, "Capture not found")
                     return

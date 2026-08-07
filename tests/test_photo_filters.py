@@ -119,7 +119,9 @@ class PhotoFiltersTest(unittest.TestCase):
     def test_web_gallery_reads_and_deletes_filter_metadata(self) -> None:
         with TemporaryDirectory() as tmpdir:
             project_root = Path(tmpdir)
-            capture_path = project_root / "data" / "captures" / "2026-08-07" / "photo.jpg"
+            capture_path = (
+                project_root / "data" / "captures" / "2026-08-07" / "photo.jpg"
+            )
             capture_path.parent.mkdir(parents=True)
             capture_path.write_bytes(b"jpeg")
             capture_metadata.write_photo_filter_metadata(capture_path, "cold")

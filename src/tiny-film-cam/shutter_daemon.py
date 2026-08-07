@@ -135,9 +135,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--buzzer-photo-sound",
         choices=PHOTO_SOUNDS,
-        default=os.environ.get(
-            "TINY_FILM_BUZZER_PHOTO_SOUND", DEFAULT_PHOTO_SOUND
-        ),
+        default=os.environ.get("TINY_FILM_BUZZER_PHOTO_SOUND", DEFAULT_PHOTO_SOUND),
         help=(
             "Photo capture cue: click, minimal, gentle, shutter, or sparkle "
             f"(default: {DEFAULT_PHOTO_SOUND})."
@@ -364,7 +362,9 @@ def main() -> None:
     button.when_held = record_clip
     button.when_released = on_release
 
-    wiring = "GPIO-to-GND with pull-up" if args.pull_up else "GPIO-to-3V3 with pull-down"
+    wiring = (
+        "GPIO-to-GND with pull-up" if args.pull_up else "GPIO-to-3V3 with pull-down"
+    )
     LOGGER.info("Tiny Film shutter ready on BCM GPIO %s (%s)", args.pin, wiring)
     LOGGER.info(
         "Tap to photograph; hold %.1fs to record a %.1fs video",

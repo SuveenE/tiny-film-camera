@@ -9,7 +9,9 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 
-BATTERY_PATH = Path(__file__).resolve().parents[1] / "src" / "tiny-film-cam" / "battery.py"
+BATTERY_PATH = (
+    Path(__file__).resolve().parents[1] / "src" / "tiny-film-cam" / "battery.py"
+)
 
 
 def load_battery_module():
@@ -34,12 +36,16 @@ class FakeBus:
         self.reads = reads
         self.writes: list[tuple[int, int, list[int]]] = []
 
-    def read_i2c_block_data(self, address: int, register: int, length: int) -> list[int]:
+    def read_i2c_block_data(
+        self, address: int, register: int, length: int
+    ) -> list[int]:
         if length != 2:
             raise AssertionError(f"Unexpected read length {length}")
         return register_bytes(self.reads[register])
 
-    def write_i2c_block_data(self, address: int, register: int, data: list[int]) -> None:
+    def write_i2c_block_data(
+        self, address: int, register: int, data: list[int]
+    ) -> None:
         self.writes.append((address, register, data))
 
 

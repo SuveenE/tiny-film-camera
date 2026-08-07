@@ -10,7 +10,9 @@ import numpy as np
 from PIL import Image
 
 
-CAMERA_PATH = Path(__file__).resolve().parents[1] / "src" / "tiny-film-cam" / "camera.py"
+CAMERA_PATH = (
+    Path(__file__).resolve().parents[1] / "src" / "tiny-film-cam" / "camera.py"
+)
 
 
 def load_camera_module():
@@ -133,9 +135,9 @@ class CameraRotationTest(unittest.TestCase):
     def test_capture_callback_runs_before_image_processing_and_save(self) -> None:
         events: list[str] = []
         picam2 = MagicMock()
-        picam2.capture_array.side_effect = lambda stream: events.append(
-            "captured"
-        ) or object()
+        picam2.capture_array.side_effect = (
+            lambda stream: events.append("captured") or object()
+        )
         image = MagicMock()
         image.save.side_effect = lambda *args, **kwargs: events.append("saved")
 

@@ -8,7 +8,9 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 
-BUZZER_PATH = Path(__file__).resolve().parents[1] / "src" / "tiny-film-cam" / "buzzer.py"
+BUZZER_PATH = (
+    Path(__file__).resolve().parents[1] / "src" / "tiny-film-cam" / "buzzer.py"
+)
 
 
 def load_buzzer_module():
@@ -117,9 +119,7 @@ class ShutterBuzzerTest(unittest.TestCase):
         self.assertTrue(all(step[1] >= 0.4 for step in pattern))
 
     def test_photo_captured_uses_selected_sound(self) -> None:
-        device = buzzer.ShutterBuzzer(
-            None, photo_sound="sparkle", photo_volume=0.45
-        )
+        device = buzzer.ShutterBuzzer(None, photo_sound="sparkle", photo_volume=0.45)
         device.play = MagicMock()
 
         device.photo_captured()
@@ -143,9 +143,7 @@ class ShutterBuzzerTest(unittest.TestCase):
         self.assertEqual(buzzer.DEFAULT_VOLUME, 0.90)
         self.assertEqual(buzzer.DEFAULT_PHOTO_VOLUME, 0.30)
         self.assertEqual(buzzer.DEFAULT_PHOTO_SOUND, "click")
-        device.play.assert_called_once_with(
-            "click", volume=buzzer.DEFAULT_PHOTO_VOLUME
-        )
+        device.play.assert_called_once_with("click", volume=buzzer.DEFAULT_PHOTO_VOLUME)
 
     def test_photo_ok_remains_an_alias(self) -> None:
         device = buzzer.ShutterBuzzer(None)

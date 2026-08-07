@@ -46,9 +46,7 @@ def filter_cache_path_from_env(project_root: Path) -> Path:
 
 def position_selections_from_env() -> dict[FilterPosition, str]:
     return {
-        "left": os.environ.get(
-            "TINY_FILM_FILTER_LEFT", DEFAULT_LEFT_SELECTION
-        ).strip()
+        "left": os.environ.get("TINY_FILM_FILTER_LEFT", DEFAULT_LEFT_SELECTION).strip()
         or DEFAULT_LEFT_SELECTION,
         "center": os.environ.get(
             "TINY_FILM_FILTER_CENTER", DEFAULT_CENTER_SELECTION

@@ -65,7 +65,16 @@ SOUNDS: dict[str, tuple[tuple[float, float, float], ...]] = {
 SOUNDS["beep"] = SOUNDS["gentle"]
 
 # The no-argument hardware demo focuses on distinct sounds, not aliases.
-SOUND_ORDER = ("gentle", "shutter", "sparkle", "minimal", "click", "chirp", "double", "alert")
+SOUND_ORDER = (
+    "gentle",
+    "shutter",
+    "sparkle",
+    "minimal",
+    "click",
+    "chirp",
+    "double",
+    "alert",
+)
 
 
 def clamp_volume(volume: float) -> float:
@@ -179,7 +188,9 @@ class ShutterBuzzer:
             if pause_seconds:
                 time.sleep(pause_seconds)
 
-    def _play(self, pattern: tuple[tuple[float, float, float], ...], volume: float) -> None:
+    def _play(
+        self, pattern: tuple[tuple[float, float, float], ...], volume: float
+    ) -> None:
         if self._device is None:
             return
         thread = threading.Thread(
@@ -309,8 +320,7 @@ def parse_args() -> argparse.Namespace:
         type=float,
         default=DEFAULT_VOLUME,
         help=(
-            f"Passive loudness 0.0–1.0 via burst density "
-            f"(default: {DEFAULT_VOLUME})."
+            f"Passive loudness 0.0–1.0 via burst density (default: {DEFAULT_VOLUME})."
         ),
     )
     parser.add_argument(

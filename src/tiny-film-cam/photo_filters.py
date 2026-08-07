@@ -42,7 +42,9 @@ def photo_filter_status_from_cache(project_root: Path) -> dict[str, object]:
     status = filter_status_from_cache(project_root)
     requested = status.get("selection")
     valid_selection = isinstance(requested, str) and requested in PHOTO_FILTER_NAMES
-    can_use_selection = bool(status.get("ok")) and not status.get("stale") and valid_selection
+    can_use_selection = (
+        bool(status.get("ok")) and not status.get("stale") and valid_selection
+    )
     active = normalize_photo_filter(requested if can_use_selection else None)
     status["requested_selection"] = requested
     status["active_filter"] = photo_filter_details(active)

@@ -463,7 +463,10 @@ def capture_photos(
             for exposure_value, output_path in zip(
                 exposure_values, output_paths, strict=True
             ):
-                if len(exposure_values) > 1 or exposure_value != settings.exposure_value:
+                if (
+                    len(exposure_values) > 1
+                    or exposure_value != settings.exposure_value
+                ):
                     _set_exposure_value(picam2, exposure_value)
                     if settings.bracket_settle_seconds > 0:
                         time.sleep(settings.bracket_settle_seconds)
@@ -538,8 +541,7 @@ def record_video(settings: VideoSettings = VideoSettings()) -> Path:
         raise CameraCaptureError("Video duration must be greater than 0 seconds.")
     if settings.rotation not in VIDEO_ONLY_ROTATIONS:
         raise CameraCaptureError(
-            "Video recording only supports rotation 0 or 180. "
-            f"Got {settings.rotation}."
+            f"Video recording only supports rotation 0 or 180. Got {settings.rotation}."
         )
 
     with _locked_camera(settings.output_dir.expanduser()):
@@ -555,9 +557,7 @@ def record_video(settings: VideoSettings = VideoSettings()) -> Path:
         )
         output_path = _video_output_path(settings)
         encoder = (
-            H264Encoder(bitrate=settings.bitrate)
-            if settings.bitrate
-            else H264Encoder()
+            H264Encoder(bitrate=settings.bitrate) if settings.bitrate else H264Encoder()
         )
         output = FfmpegOutput(str(output_path))
         started = False
