@@ -6,6 +6,15 @@ Original project files under `assets/` (C-bracket spacers and generators) are
 covered by the repository [MIT License](../LICENSE). Third-party Printables
 models keep their upstream licenses, listed below.
 
+## v1 assets
+
+Current enclosure parts and a short camera demo:
+
+- `v1/bottom-cover-aug5-v2.stl` — bottom cover
+- `v1/cam-cover-aug5.stl` — camera cover
+- `v1/top-cover-aug5.stl` — top cover
+- `v1/cam-demo-1.mov` — camera demo video
+
 ## Third-party models
 
 ### Raspberry Pi Zero 2 Case MK3 Camera
