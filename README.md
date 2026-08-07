@@ -10,7 +10,7 @@ phone-friendly local gallery—without sending your photos to the cloud.
 
 ## What it does
 
-- Tap the physical shutter for a photo; hold it for a short video.
+- Use dedicated physical buttons for photos and short video clips.
 - Choose Black & white, Current, or Cold with a three-position hardware switch.
 - Capture, browse, download, and delete photos from a phone on the same Wi-Fi.
 - Monitor the Waveshare UPS battery from the web interface.
@@ -22,7 +22,7 @@ phone-friendly local gallery—without sending your photos to the cloud.
 - Raspberry Pi Zero 2 W
 - Raspberry Pi Camera Module 3
 - Waveshare UPS HAT (C)
-- Momentary shutter button
+- Two momentary buttons (photo and video)
 - Optional passive buzzer and SS23D32 three-position switch
 - 3D-printed enclosure from [`assets/`](assets/README.md)
 

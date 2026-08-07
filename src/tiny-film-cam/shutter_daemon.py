@@ -44,6 +44,12 @@ def env_int(name: str, default: int) -> int:
     return int(value)
 
 
+def photo_button_pin_from_env() -> int:
+    """Read the photo button pin, preserving the original env var as a fallback."""
+    legacy_pin = env_int("TINY_FILM_BUTTON_PIN", 17)
+    return env_int("TINY_FILM_PHOTO_BUTTON_PIN", legacy_pin)
+
+
 def env_optional_int(name: str, default: int | None = None) -> int | None:
     """Read an optional int env var.
 
@@ -78,10 +84,23 @@ def parse_args() -> argparse.Namespace:
     capture_defaults = capture_settings_from_env(project_root)
     video_defaults = video_settings_from_env(project_root)
     parser = argparse.ArgumentParser(
-        description="Run the Tiny Film physical shutter button listener."
+        description="Run the Tiny Film physical photo and video button listener."
     )
     parser.add_argument("--project-root", type=Path, default=project_root)
-    parser.add_argument("--pin", type=int, default=env_int("TINY_FILM_BUTTON_PIN", 17))
+    parser.add_argument(
+        "--photo-pin",
+        "--pin",
+        dest="photo_pin",
+        type=int,
+        default=photo_button_pin_from_env(),
+        help="BCM GPIO pin for the photo button (default: 17).",
+    )
+    parser.add_argument(
+        "--video-pin",
+        type=int,
+        default=env_int("TINY_FILM_VIDEO_BUTTON_PIN", 23),
+        help="BCM GPIO pin for the video button (default: 23).",
+    )
     parser.set_defaults(pull_up=env_bool("TINY_FILM_BUTTON_PULL_UP", True))
     parser.add_argument("--pull-up", dest="pull_up", action="store_true")
     parser.add_argument("--pull-down", dest="pull_up", action="store_false")
@@ -142,16 +161,10 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
-        "--hold-time",
-        type=float,
-        default=1.0,
-        help="Seconds to hold the button before it records a video instead of a photo.",
-    )
-    parser.add_argument(
         "--video-duration",
         type=float,
         default=video_defaults.duration_seconds,
-        help="Length in seconds of a held-button video clip.",
+        help="Length in seconds of a video-button recording.",
     )
     parser.add_argument("--video-width", type=int, default=video_defaults.width)
     parser.add_argument("--video-height", type=int, default=video_defaults.height)
@@ -247,7 +260,6 @@ def main() -> None:
     output_dir = resolve_project_path(project_root, args.output_dir)
     capture_lock = threading.Lock()
     stop_event = threading.Event()
-    held_flag = threading.Event()
     buzzer_pin = None if args.no_buzzer else args.buzzer_pin
     buzzer = ShutterBuzzer(
         buzzer_pin,
@@ -308,13 +320,12 @@ def main() -> None:
             capture_lock.release()
 
     def record_clip() -> None:
-        held_flag.set()
         if not capture_lock.acquire(blocking=False):
-            LOGGER.info("Ignored button hold because a capture is already running")
+            LOGGER.info("Ignored video button because a capture is already running")
             return
 
         try:
-            LOGGER.info("Button held; recording %.1fs video", args.video_duration)
+            LOGGER.info("Video button pressed; recording %.1fs video", args.video_duration)
             buzzer.click()
             buzzer.video_start()
             settings = VideoSettings(
@@ -343,32 +354,33 @@ def main() -> None:
         finally:
             capture_lock.release()
 
-    def on_release() -> None:
-        # A long hold already triggered a video via when_held; skip the photo.
-        if held_flag.is_set():
-            held_flag.clear()
-            return
-        take_photo()
-
     signal.signal(signal.SIGINT, request_stop)
     signal.signal(signal.SIGTERM, request_stop)
 
-    button = Button(
-        args.pin,
+    photo_button = Button(
+        args.photo_pin,
         pull_up=args.pull_up,
         bounce_time=args.bounce_time if args.bounce_time > 0 else None,
-        hold_time=args.hold_time if args.hold_time > 0 else 1.0,
     )
-    button.when_held = record_clip
-    button.when_released = on_release
+    video_button = Button(
+        args.video_pin,
+        pull_up=args.pull_up,
+        bounce_time=args.bounce_time if args.bounce_time > 0 else None,
+    )
+    photo_button.when_pressed = take_photo
+    video_button.when_pressed = record_clip
 
     wiring = (
         "GPIO-to-GND with pull-up" if args.pull_up else "GPIO-to-3V3 with pull-down"
     )
-    LOGGER.info("Tiny Film shutter ready on BCM GPIO %s (%s)", args.pin, wiring)
     LOGGER.info(
-        "Tap to photograph; hold %.1fs to record a %.1fs video",
-        args.hold_time,
+        "Tiny Film buttons ready: photo on BCM GPIO %s, video on BCM GPIO %s (%s)",
+        args.photo_pin,
+        args.video_pin,
+        wiring,
+    )
+    LOGGER.info(
+        "Press photo to capture a still; press video to record a %.1fs clip",
         args.video_duration,
     )
     LOGGER.info("Captures will be saved under %s", output_dir)
@@ -390,7 +402,8 @@ def main() -> None:
         while not stop_event.wait(1.0):
             pass
     finally:
-        button.close()
+        photo_button.close()
+        video_button.close()
         buzzer.close()
 
 
