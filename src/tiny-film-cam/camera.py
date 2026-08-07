@@ -8,6 +8,14 @@ import os
 from pathlib import Path
 from typing import Callable, Iterator, Literal
 
+from capture_metadata import write_photo_filter_metadata
+from photo_filters import (
+    DEFAULT_PHOTO_FILTER,
+    PhotoFilterName,
+    apply_photo_filter,
+    normalize_photo_filter,
+)
+
 
 Rotation = Literal[0, 90, 180, 270]
 FocusMode = Literal["default", "auto", "continuous", "manual"]
@@ -91,6 +99,7 @@ class CaptureSettings:
     lens_position: float | None = None
     awb_mode: AwbMode = DEFAULT_AWB_MODE
     awb_lock: bool = DEFAULT_AWB_LOCK
+    photo_filter: PhotoFilterName = DEFAULT_PHOTO_FILTER
 
 
 @dataclass(frozen=True)
@@ -200,6 +209,9 @@ def capture_settings_from_env(project_root: Path) -> CaptureSettings:
         lens_position=env_optional_float("TINY_FILM_CAPTURE_LENS_POSITION"),
         awb_mode=awb_mode,  # type: ignore[arg-type]
         awb_lock=env_bool("TINY_FILM_CAPTURE_AWB_LOCK", DEFAULT_AWB_LOCK),
+        photo_filter=normalize_photo_filter(
+            os.environ.get("TINY_FILM_CAPTURE_FILTER", DEFAULT_PHOTO_FILTER)
+        ),
     )
 
 
@@ -395,11 +407,13 @@ def _capture_and_save_image(
         on_captured()
     image = _image_from_picamera_frame(frame)
     image = _rotate_image(image, settings.rotation)
+    image = apply_photo_filter(image, settings.photo_filter)
     image.save(
         output_path,
         format="JPEG",
         quality=_normalized_quality(settings.quality),
     )
+    write_photo_filter_metadata(output_path, settings.photo_filter)
 
 
 def capture_photos(
@@ -410,7 +424,7 @@ def capture_photos(
     import time
 
     try:
-        from PIL import Image
+        __import__("PIL.Image")
     except ImportError as exc:
         raise CameraCaptureError(
             "Missing Pillow. Install it on the Pi with `sudo apt install python3-pil`."

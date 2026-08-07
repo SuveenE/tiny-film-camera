@@ -14,6 +14,9 @@ CAMERA_PATH = Path(__file__).resolve().parents[1] / "src" / "tiny-film-cam" / "c
 
 
 def load_camera_module():
+    source_root = str(CAMERA_PATH.parent)
+    if source_root not in sys.path:
+        sys.path.insert(0, source_root)
     spec = importlib.util.spec_from_file_location("tiny_film_camera", CAMERA_PATH)
     if spec is None or spec.loader is None:
         raise RuntimeError(f"Could not load camera module from {CAMERA_PATH}")
@@ -66,6 +69,7 @@ class CameraRotationTest(unittest.TestCase):
         self.assertEqual(settings.exposure_value, -0.7)
         self.assertEqual(settings.awb_mode, "daylight")
         self.assertFalse(settings.awb_lock)
+        self.assertEqual(settings.photo_filter, "current")
 
     def test_capture_settings_reads_film_source_controls_from_env(self) -> None:
         with patch.dict(
@@ -76,6 +80,7 @@ class CameraRotationTest(unittest.TestCase):
                 "TINY_FILM_CAPTURE_BRACKET_SETTLE_SECONDS": "0.4",
                 "TINY_FILM_CAPTURE_AWB_MODE": "cloudy",
                 "TINY_FILM_CAPTURE_AWB_LOCK": "1",
+                "TINY_FILM_CAPTURE_FILTER": "cold",
             },
             clear=True,
         ):
@@ -86,6 +91,7 @@ class CameraRotationTest(unittest.TestCase):
         self.assertEqual(settings.bracket_settle_seconds, 0.4)
         self.assertEqual(settings.awb_mode, "cloudy")
         self.assertTrue(settings.awb_lock)
+        self.assertEqual(settings.photo_filter, "cold")
 
     def test_bracket_output_paths_include_ev_suffixes(self) -> None:
         settings = camera.CaptureSettings(
@@ -140,6 +146,16 @@ class CameraRotationTest(unittest.TestCase):
                 side_effect=lambda frame: events.append("processed") or image,
             ),
             patch.object(camera, "_rotate_image", return_value=image),
+            patch.object(
+                camera,
+                "apply_photo_filter",
+                side_effect=lambda source, name: events.append("filtered") or image,
+            ),
+            patch.object(
+                camera,
+                "write_photo_filter_metadata",
+                side_effect=lambda path, name: events.append("metadata"),
+            ),
         ):
             camera._capture_and_save_image(
                 picam2,
@@ -148,7 +164,10 @@ class CameraRotationTest(unittest.TestCase):
                 lambda: events.append("sound"),
             )
 
-        self.assertEqual(events, ["captured", "sound", "processed", "saved"])
+        self.assertEqual(
+            events,
+            ["captured", "sound", "processed", "filtered", "saved", "metadata"],
+        )
 
     def test_rotation_90_is_clockwise(self) -> None:
         rotated = camera._rotate_image(marker_image(), 90)

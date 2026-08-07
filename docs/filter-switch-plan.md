@@ -69,7 +69,7 @@ cache immediately before each photo.
 | --- | --- |
 | `filter_switch.py` | Define positions, GPIO truth-table mapping, cache format, stale/error handling, and configurable position-to-filter mapping. |
 | `filter_daemon.py` | Own GPIO 27/22, debounce transitions, and write the initial and changed states to the cache. |
-| `filters.py` | Hold the stable IDs (`warm`, `mono`, `cold`), display names, versions, and lightweight Pillow filter recipes. Start from the existing `warm_vintage` and `cool_muted` ideas in `presets.py`; add monochrome. |
+| `photo_filters.py` | Hold the stable IDs (`black_and_white`, `current`, `cold`), display names, versions, and lightweight Pillow filter recipes. |
 | `camera.py` | Add the chosen filter to `CaptureSettings` and apply it after rotation but before JPEG encoding. Keep the current raw camera controls common to all three looks. |
 | `shutter_daemon.py` | Resolve the cached selector state at button-press time, not only at service startup. |
 | `web.py` | Resolve the state for web captures, add `GET /api/filter`, and show a read-only `Photo filter` badge that refreshes after switch movement. |
@@ -108,9 +108,10 @@ Picamera2 colour gains, while monochrome can use zero saturation.
 - Full-resolution capture does not exhaust the Pi Zero 2 W's memory.
 - Existing camera, shutter, buzzer, battery, web, and service tests still pass.
 
-## What can be done next
+## Implementation status
 
-Codex can implement the complete software path, local simulation, automated
-tests, service/config updates, and web UI. Physical continuity testing, final
-pin identification, soldering, and aesthetic tuning from real camera samples
-will still need to be done on the device.
+The software path, local simulation, automated tests, service/config updates,
+and web UI are implemented in two stacked pull requests. Physical continuity
+testing, final pin identification, soldering, full-resolution Pi benchmarking,
+and aesthetic tuning from real camera samples still need to be done on the
+device.

@@ -1,7 +1,8 @@
 # Photo filter switch
 
 The SS23D32 three-position switch selects **Black & white**, the **current**
-camera look, or **Cold**. Version 1 applies the selection to photos only.
+camera look, or **Cold**. The selected look is baked into JPEGs taken from the
+physical shutter or web capture button. Videos remain unchanged.
 
 ## Wiring
 
@@ -46,6 +47,19 @@ test without GPIO hardware:
 
 ```bash
 TINY_FILM_FILTER_SIMULATE_POSITION=center ./scripts/run_filter_switch.sh
+```
+
+The web page reads the state from `GET /api/filter`, displays the active photo
+filter, and records the filter ID/version beside every new JPEG. If the switch
+state is missing, stale, invalid, or unknown, captures use **Current** and the
+web badge reports that it is using a fallback.
+
+The filters can also be exercised without the switch:
+
+```bash
+python3 src/tiny-film-cam/capture.py --photo-filter black_and_white
+python3 src/tiny-film-cam/capture.py --photo-filter current
+python3 src/tiny-film-cam/capture.py --photo-filter cold
 ```
 
 ## Configuration
