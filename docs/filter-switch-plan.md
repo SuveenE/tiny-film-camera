@@ -44,8 +44,8 @@ pull-up resistors; the switch needs no 3.3 V or 5 V connection.
 | outer B | BCM GPIO 22, physical pin 15 |
 | second row, if present | leave disconnected |
 
-These pins avoid the existing shutter (BCM 17), buzzer (BCM 18), and UPS I2C
-(BCM 2/3) connections.
+These pins avoid the photo button (BCM 17), video button (BCM 23), buzzer
+(BCM 18), and UPS I2C (BCM 2/3) connections.
 
 | GPIO 27 | GPIO 22 | Selection |
 | --- | --- | --- |

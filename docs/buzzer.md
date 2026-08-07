@@ -25,8 +25,8 @@ and **GND**.
 
 ## Wiring
 
-Avoid BCM GPIO 17 (shutter button) and BCM GPIO 2/3 (UPS HAT I2C). Use
-**BCM GPIO 18** (physical pin 12):
+Avoid BCM GPIO 17 (photo button), BCM GPIO 23 (video button), and BCM GPIO 2/3
+(UPS HAT I2C). Use **BCM GPIO 18** (physical pin 12):
 
 ```
 Buzzer VCC ──→ 3V3          (physical pin 1 or 17)
