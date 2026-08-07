@@ -1,6 +1,7 @@
 [Unit]
 Description=Tiny Film web app
-After=network.target
+After=network.target tiny-film-filter.service
+Wants=tiny-film-filter.service
 
 [Service]
 Type=simple

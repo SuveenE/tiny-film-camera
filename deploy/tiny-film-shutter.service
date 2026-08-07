@@ -1,6 +1,7 @@
 [Unit]
 Description=Tiny Film shutter button
-After=local-fs.target
+After=local-fs.target tiny-film-filter.service
+Wants=tiny-film-filter.service
 
 [Service]
 Type=simple

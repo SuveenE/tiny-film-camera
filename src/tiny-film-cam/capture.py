@@ -19,6 +19,7 @@ from camera import (
     DEFAULT_WARMUP_SECONDS,
     capture_photos,
 )
+from photo_filters import DEFAULT_PHOTO_FILTER, PHOTO_FILTER_NAMES
 
 
 def parse_exposure_brackets(value: str) -> tuple[float, ...]:
@@ -101,6 +102,12 @@ def parse_args() -> argparse.Namespace:
         default=DEFAULT_AWB_LOCK,
         help="Let AWB settle during warmup, then lock it before capture.",
     )
+    parser.add_argument(
+        "--photo-filter",
+        choices=PHOTO_FILTER_NAMES,
+        default=DEFAULT_PHOTO_FILTER,
+        help="Photo look to bake into the saved JPEG.",
+    )
     return parser.parse_args()
 
 
@@ -124,6 +131,7 @@ def main() -> None:
         lens_position=args.lens_position,
         awb_mode=args.awb_mode,
         awb_lock=args.awb_lock,
+        photo_filter=args.photo_filter,
     )
     output_paths = capture_photos(settings)
     for output_path in output_paths:

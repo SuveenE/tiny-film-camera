@@ -11,6 +11,14 @@ Run one capture from the project root on the Raspberry Pi:
 python3 src/tiny-film-cam/capture.py
 ```
 
+Choose one of the three JPEG looks directly with:
+
+```bash
+python3 src/tiny-film-cam/capture.py --photo-filter black_and_white
+python3 src/tiny-film-cam/capture.py --photo-filter current
+python3 src/tiny-film-cam/capture.py --photo-filter cold
+```
+
 If `--output` is omitted, the script writes a timestamped JPEG into
 `data/captures/YYYY-MM-DD/`.
 
@@ -87,4 +95,5 @@ The web app serves captures from `data/captures/` and exposes:
 - `GET /download/captures/<capture-path>`
 - `GET /api/device-details`
 - `GET /api/battery`
+- `GET /api/filter`
 - `GET /latest-image`

@@ -5,6 +5,7 @@ import json
 import mimetypes
 import shutil
 import socket
+from dataclasses import replace
 from email.utils import formatdate
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -12,6 +13,7 @@ from pathlib import Path
 from urllib.parse import quote, unquote
 
 from battery import battery_status_from_cache
+from capture_metadata import delete_capture_metadata, read_capture_metadata
 from camera import (
     CameraCaptureError,
     CameraUnavailableError,
@@ -20,6 +22,10 @@ from camera import (
     capture_settings_from_env,
     record_video,
     video_settings_from_env,
+)
+from photo_filters import (
+    photo_filter_status_from_cache,
+    selected_photo_filter_from_cache,
 )
 
 
@@ -80,30 +86,18 @@ def get_latest_capture_path(project_root: Path) -> Path | None:
 
 
 def build_capture_image_list(project_root: Path) -> list[dict[str, object]]:
-    root = captures_root(project_root)
-    images: list[dict[str, object]] = []
-    for image_path in iter_capture_images(project_root):
-        relative_path = image_path.relative_to(root).as_posix()
-        stat = image_path.stat()
-        images.append(
-            {
-                "filename": image_path.name,
-                "relative_path": relative_path,
-                "media_type": media_type_for(image_path),
-                "view_url": f"/image/captures/{quote(relative_path)}",
-                "download_url": f"/download/captures/{quote(relative_path)}",
-                "delete_url": f"/api/captures/{quote(relative_path)}",
-                "modified_unix": stat.st_mtime,
-                "size_bytes": stat.st_size,
-            }
-        )
-    return images
+    return [
+        build_capture_image(project_root, image_path)
+        for image_path in iter_capture_images(project_root)
+    ]
 
 
 def build_capture_image(project_root: Path, image_path: Path) -> dict[str, object]:
-    root = captures_root(project_root)
-    relative_path = image_path.relative_to(root).as_posix()
+    root = captures_root(project_root).resolve()
+    relative_path = image_path.resolve().relative_to(root).as_posix()
     stat = image_path.stat()
+    metadata = read_capture_metadata(image_path)
+    photo_filter = metadata.get("photo_filter")
     return {
         "filename": image_path.name,
         "relative_path": relative_path,
@@ -113,11 +107,16 @@ def build_capture_image(project_root: Path, image_path: Path) -> dict[str, objec
         "delete_url": f"/api/captures/{quote(relative_path)}",
         "modified_unix": stat.st_mtime,
         "size_bytes": stat.st_size,
+        "photo_filter": photo_filter if isinstance(photo_filter, dict) else None,
     }
 
 
 def capture_from_web(project_root: Path) -> dict[str, object]:
-    output_path = capture_photo(capture_settings_from_env(project_root))
+    settings = replace(
+        capture_settings_from_env(project_root),
+        photo_filter=selected_photo_filter_from_cache(project_root),
+    )
+    output_path = capture_photo(settings)
     try:
         output_path.relative_to(captures_root(project_root))
     except ValueError as exc:
@@ -157,10 +156,11 @@ def delete_capture_image(project_root: Path, relative_path: str) -> dict[str, ob
     image_path = get_capture_image_by_relative_path(project_root, relative_path)
     if image_path is None:
         return None
-    root = captures_root(project_root)
+    root = captures_root(project_root).resolve()
     deleted_path = image_path.relative_to(root).as_posix()
     deleted_name = image_path.name
     image_path.unlink()
+    delete_capture_metadata(image_path)
     remove_empty_capture_dirs(project_root, image_path.parent)
     return {
         "ok": True,
@@ -336,10 +336,23 @@ def render_page() -> bytes:
             opacity: 0.55;
           }
           .actions {
+            align-items: center;
             display: flex;
             gap: 8px;
             flex-wrap: wrap;
             justify-content: flex-end;
+          }
+          .filter-summary {
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            color: var(--muted);
+            font-size: 12px;
+            padding: 8px 11px;
+            white-space: nowrap;
+          }
+          .filter-summary.warning {
+            border-color: var(--accent);
+            color: var(--accent);
           }
           .battery-summary {
             align-items: center;
@@ -528,6 +541,7 @@ def render_page() -> bytes:
             <div class="section-heading">
               <h2>Latest</h2>
               <div class="actions">
+                <span class="filter-summary warning" id="filter-summary" aria-live="polite">Photo filter: checking...</span>
                 <button class="button" id="record-button" type="button">Record 10s</button>
                 <button class="button primary" id="capture-button" type="button">Take Photo</button>
               </div>
@@ -565,6 +579,7 @@ def render_page() -> bytes:
           const batterySummaryPercent = document.getElementById("battery-summary-percent");
           const captureButton = document.getElementById("capture-button");
           const recordButton = document.getElementById("record-button");
+          const filterSummary = document.getElementById("filter-summary");
           let captureImages = [];
           let selectedCaptureIndex = 0;
 
@@ -686,7 +701,10 @@ def render_page() -> bytes:
             name.textContent = image.relative_path || image.filename;
             const meta = document.createElement("span");
             meta.className = "meta";
-            meta.textContent = [formatDate(image.modified_unix), formatBytes(image.size_bytes)]
+            const filterLabel = image.photo_filter && image.photo_filter.label
+              ? image.photo_filter.label
+              : "";
+            meta.textContent = [formatDate(image.modified_unix), formatBytes(image.size_bytes), filterLabel]
               .filter(Boolean)
               .join(" / ");
             text.append(name, meta);
@@ -831,6 +849,17 @@ def render_page() -> bytes:
             batterySummary.title = label;
           }
 
+          function renderFilter(details) {
+            const activeFilter = details.active_filter || {};
+            const label = activeFilter.label || "Current";
+            const warning = Boolean(details.using_fallback || details.stale || !details.ok);
+            filterSummary.textContent = `Photo filter: ${label}${warning ? " (fallback)" : ""}`;
+            filterSummary.className = warning ? "filter-summary warning" : "filter-summary";
+            filterSummary.title = warning
+              ? details.error || "Filter switch unavailable; using Current"
+              : `Physical switch: ${details.position}`;
+          }
+
           async function refreshImages(options = {}) {
             const response = await fetch("/api/images", { cache: "no-store" });
             if (!response.ok) throw new Error("Image request failed");
@@ -873,6 +902,12 @@ def render_page() -> bytes:
             const response = await fetch("/api/battery", { cache: "no-store" });
             if (!response.ok) throw new Error("Battery request failed");
             renderBattery(await response.json());
+          }
+
+          async function refreshFilter() {
+            const response = await fetch("/api/filter", { cache: "no-store" });
+            if (!response.ok) throw new Error("Filter request failed");
+            renderFilter(await response.json());
           }
 
           async function takePhoto() {
@@ -946,9 +981,13 @@ def render_page() -> bytes:
           refreshBattery().catch(() => {
             renderBattery({ ok: false, error: "Could not load battery details.", stale: true });
           });
+          refreshFilter().catch(() => {
+            renderFilter({ ok: false, error: "Could not load filter switch.", stale: true, using_fallback: true });
+          });
           setInterval(() => refreshImages().catch(() => {}), 5000);
           setInterval(() => refreshDetails().catch(() => {}), 5000);
           setInterval(() => refreshBattery().catch(() => {}), 5000);
+          setInterval(() => refreshFilter().catch(() => {}), 1000);
         </script>
       </body>
     </html>
@@ -1046,6 +1085,10 @@ def build_handler(project_root: Path, port: int):
 
             if request_path == "/api/battery":
                 self._send_json(battery_status_from_cache(project_root))
+                return
+
+            if request_path == "/api/filter":
+                self._send_json(photo_filter_status_from_cache(project_root))
                 return
 
             if request_path == "/latest-image":

@@ -59,9 +59,11 @@ charging state. The percent is a voltage-derived estimate, so it can read high
 while the HAT is plugged into USB power.
 
 An optional SS23D32 three-position switch can select Black & white, the current
-look, or Cold for photos. It uses BCM GPIO 27 and 22 with internal pull-ups, so
-no external resistors are needed. See [docs/filter-switch.md](docs/filter-switch.md)
-for wiring and the live GPIO test command.
+look, or Cold for photos taken from either shutter path. The web app displays
+the live selection and the look used for each photo. The switch uses BCM GPIO
+27 and 22 with internal pull-ups, so no external resistors are needed. See
+[docs/filter-switch.md](docs/filter-switch.md) for wiring and the live GPIO test
+command.
 
 To change the button pin or capture settings, copy `.env.example` to `.env` and
 edit the `TINY_FILM_*` values.

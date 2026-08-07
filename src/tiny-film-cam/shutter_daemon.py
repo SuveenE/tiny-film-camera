@@ -24,6 +24,7 @@ from camera import (
     resolve_project_path,
     video_settings_from_env,
 )
+from photo_filters import selected_photo_filter_from_cache
 
 
 LOGGER = logging.getLogger("tiny_film.shutter")
@@ -276,7 +277,8 @@ def main() -> None:
             return
 
         try:
-            LOGGER.info("Button pressed; capturing photo")
+            photo_filter = selected_photo_filter_from_cache(project_root)
+            LOGGER.info("Button pressed; capturing photo with %s filter", photo_filter)
             settings = CaptureSettings(
                 output_dir=output_dir,
                 width=args.width,
@@ -294,6 +296,7 @@ def main() -> None:
                 lens_position=args.lens_position,
                 awb_mode=args.awb_mode,
                 awb_lock=args.awb_lock,
+                photo_filter=photo_filter,
             )
             output_paths = capture_photos(
                 settings,
