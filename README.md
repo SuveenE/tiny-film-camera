@@ -1,5 +1,9 @@
 # tiny-film-camera
 
+<img src="assets/v1/v1-design.png" alt="V1 design of the tiny-film camera" width="280" />
+
+v1 design
+
 <img src="assets/v0/assembled-camera.jpg" alt="V0 build of the tiny-film camera" width="280" />
 
 v0 build
