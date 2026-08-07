@@ -1,9 +1,10 @@
 # tiny-film-cam
 
-Capture-only Raspberry Pi camera code for Tiny Film.
+Raspberry Pi camera application and hardware integration code for Tiny Film.
 
-This folder intentionally contains only the local camera capture path. It does
-not include OpenAI image generation, queues, phone UI, or service deployment.
+This folder contains the photo and video capture paths, phone web UI, and the
+shutter, battery, buzzer, and filter-switch integrations used by the systemd
+services in `deploy/`. It does not include OpenAI image generation or queues.
 
 Run one capture from the project root on the Raspberry Pi:
 
