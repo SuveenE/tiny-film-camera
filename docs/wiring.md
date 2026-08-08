@@ -32,10 +32,21 @@ The slider positions select:
 | Neither outer terminal connected to GND | Current |
 | GPIO 22 connected to GND | Cold |
 
-The Pi's internal pull-up resistors are enabled for all four GPIO inputs, so no
-external resistors are needed. Do not connect the buttons or slider to 3.3 V or
-5 V.
+## Passive buzzer
+
+| Buzzer terminal | Raspberry Pi |
+| --- | --- |
+| VCC | 3.3 V (physical pin 1 or 17) |
+| GND | GND (physical pin 6 or 14) |
+| I/O | BCM GPIO 18 (physical pin 12) |
+
+Use a passive three-pin buzzer module with terminals labelled VCC, GND, and I/O.
+Power it from 3.3 V, not 5 V.
+
+The Pi's internal pull-up resistors are enabled for all four button and slider
+GPIO inputs, so no external resistors are needed. Do not connect the buttons or
+slider to 3.3 V or 5 V.
 
 For testing and configuration details, see
 [Photo and Video Buttons](shutter-button.md) and
-[Photo-filter switch](filter-switch.md).
+[Photo-filter switch](filter-switch.md), and [Passive buzzer](buzzer.md).

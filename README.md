@@ -67,7 +67,7 @@ your local `.env`.
 
 ## Build guides
 
-- [Button and slider wiring](docs/wiring.md)
+- [Button, slider, and buzzer wiring](docs/wiring.md)
 - [Camera and Raspberry Pi setup](docs/setup.md)
 - [Physical shutter](docs/shutter-button.md)
 - [Passive buzzer](docs/buzzer.md)
