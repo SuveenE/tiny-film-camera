@@ -35,9 +35,9 @@
    ```bash
    i2cdetect -y 1
    ```
-10. Wire the photo button between BCM GPIO 17 (physical pin 11) and any GND
-    pin. Wire a separate video button between BCM GPIO 5 (physical pin 29) and
-    the adjacent GND (physical pin 30). With the default `.env.example`
+10. Wire the photo button between BCM GPIO 5 (physical pin 29) and the adjacent
+    GND (physical pin 30). Wire a separate video button between BCM GPIO 17
+    (physical pin 11) and any GND pin. With the default `.env.example`
     settings, both use the Pi's internal pull-up resistors; no external
     resistors are required. See
     [shutter-button.md](shutter-button.md).

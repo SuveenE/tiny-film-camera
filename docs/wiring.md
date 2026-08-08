@@ -6,8 +6,8 @@ Power off and unplug the Raspberry Pi before changing any wiring.
 
 | Control | First side | Other side |
 | --- | --- | --- |
-| Photo button | BCM GPIO 17 (physical pin 11) | GND (physical pin 9) |
-| Video button | BCM GPIO 5 (physical pin 29) | GND (physical pin 30) |
+| Photo button | BCM GPIO 5 (physical pin 29) | GND (physical pin 30) |
+| Video button | BCM GPIO 17 (physical pin 11) | GND (physical pin 9) |
 
 The buttons can share any GND pin. For a 4-pin tactile button, connect one leg
 from each side of the button; the two legs on each side are already connected
