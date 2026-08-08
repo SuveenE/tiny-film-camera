@@ -46,7 +46,7 @@ def env_int(name: str, default: int) -> int:
 
 def photo_button_pin_from_env() -> int:
     """Read the photo button pin, preserving the original env var as a fallback."""
-    legacy_pin = env_int("TINY_FILM_BUTTON_PIN", 17)
+    legacy_pin = env_int("TINY_FILM_BUTTON_PIN", 5)
     return env_int("TINY_FILM_PHOTO_BUTTON_PIN", legacy_pin)
 
 
@@ -93,13 +93,13 @@ def parse_args() -> argparse.Namespace:
         dest="photo_pin",
         type=int,
         default=photo_button_pin_from_env(),
-        help="BCM GPIO pin for the photo button (default: 17).",
+        help="BCM GPIO pin for the photo button (default: 5).",
     )
     parser.add_argument(
         "--video-pin",
         type=int,
-        default=env_int("TINY_FILM_VIDEO_BUTTON_PIN", 5),
-        help="BCM GPIO pin for the video button (default: 5).",
+        default=env_int("TINY_FILM_VIDEO_BUTTON_PIN", 17),
+        help="BCM GPIO pin for the video button (default: 17).",
     )
     parser.set_defaults(pull_up=env_bool("TINY_FILM_BUTTON_PULL_UP", True))
     parser.add_argument("--pull-up", dest="pull_up", action="store_true")
