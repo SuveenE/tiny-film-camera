@@ -18,8 +18,8 @@ does not make them clear.
 Photo button, one side ──→ BCM GPIO 17 (physical pin 11)
 Photo button, other side ─→ GND        (physical pin 9, or any GND)
 
-Video button, one side ──→ BCM GPIO 23 (physical pin 16)
-Video button, other side ─→ GND        (physical pin 20, or any GND)
+Video button, one side ──→ BCM GPIO 5 (physical pin 29)
+Video button, other side ─→ GND       (physical pin 30, or any GND)
 ```
 
 The two buttons can share a GND connection. On each 4-pin switch, the unused
@@ -50,7 +50,7 @@ The service file is at `deploy/tiny-film-shutter.service`.
 | Setting | Env var | CLI flag | Default |
 |---------|---------|----------|---------|
 | Photo GPIO pin | `TINY_FILM_PHOTO_BUTTON_PIN` | `--photo-pin` | 17 |
-| Video GPIO pin | `TINY_FILM_VIDEO_BUTTON_PIN` | `--video-pin` | 23 |
+| Video GPIO pin | `TINY_FILM_VIDEO_BUTTON_PIN` | `--video-pin` | 5 |
 | Pull direction (both) | `TINY_FILM_BUTTON_PULL_UP` | `--pull-up` / `--pull-down` | pull-up |
 | Debounce time | `TINY_FILM_BUTTON_BOUNCE_SECONDS` | `--bounce-time` | 0.15 s |
 | Video length | — | `--video-duration` | 10 s |

@@ -25,7 +25,7 @@ and **GND**.
 
 ## Wiring
 
-Avoid BCM GPIO 17 (photo button), BCM GPIO 23 (video button), and BCM GPIO 2/3
+Avoid BCM GPIO 17 (photo button), BCM GPIO 5 (video button), and BCM GPIO 2/3
 (UPS HAT I2C). Use **BCM GPIO 18** (physical pin 12):
 
 ```

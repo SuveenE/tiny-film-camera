@@ -65,7 +65,7 @@ class ShutterDaemonTest(unittest.TestCase):
             defaults = shutter_daemon.parse_args()
 
         self.assertEqual(defaults.photo_pin, 17)
-        self.assertEqual(defaults.video_pin, 23)
+        self.assertEqual(defaults.video_pin, 5)
 
         with (
             patch.dict(
@@ -92,7 +92,7 @@ class ShutterDaemonTest(unittest.TestCase):
             args = shutter_daemon.parse_args()
 
         self.assertEqual(args.photo_pin, 5)
-        self.assertEqual(args.video_pin, 23)
+        self.assertEqual(args.video_pin, 5)
 
     def test_each_button_registers_its_own_capture_action(self) -> None:
         fake_gpiozero = types.ModuleType("gpiozero")
@@ -127,7 +127,7 @@ class ShutterDaemonTest(unittest.TestCase):
         ):
             shutter_daemon.main()
             self.assertEqual(
-                [button.pin for button in FakeButton.instances], [17, 23]
+                [button.pin for button in FakeButton.instances], [17, 5]
             )
             self.assertTrue(all(button.closed for button in FakeButton.instances))
             self.assertNotIn("hold_time", FakeButton.instances[0].kwargs)

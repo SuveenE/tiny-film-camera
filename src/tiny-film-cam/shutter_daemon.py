@@ -98,8 +98,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--video-pin",
         type=int,
-        default=env_int("TINY_FILM_VIDEO_BUTTON_PIN", 23),
-        help="BCM GPIO pin for the video button (default: 23).",
+        default=env_int("TINY_FILM_VIDEO_BUTTON_PIN", 5),
+        help="BCM GPIO pin for the video button (default: 5).",
     )
     parser.set_defaults(pull_up=env_bool("TINY_FILM_BUTTON_PULL_UP", True))
     parser.add_argument("--pull-up", dest="pull_up", action="store_true")
