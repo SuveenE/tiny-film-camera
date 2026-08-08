@@ -165,6 +165,12 @@ class PhotoFiltersTest(unittest.TestCase):
         self.assertEqual(captured_settings[0].photo_filter, "black_and_white")
         self.assertEqual(item["photo_filter"]["id"], "black_and_white")
 
+    def test_web_page_shows_the_filter_and_switch_position(self) -> None:
+        page = web.render_page().decode("utf-8")
+
+        self.assertIn("Photo filter: ${label} (switch: ${position})", page)
+        self.assertIn("fallback; switch: ${position}", page)
+
 
 if __name__ == "__main__":
     unittest.main()

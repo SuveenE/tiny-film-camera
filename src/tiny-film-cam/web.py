@@ -861,7 +861,10 @@ def render_page() -> bytes:
             const activeFilter = details.active_filter || {};
             const label = activeFilter.label || "Current";
             const warning = Boolean(details.using_fallback || details.stale || !details.ok);
-            filterSummary.textContent = `Photo filter: ${label}${warning ? " (fallback)" : ""}`;
+            const position = details.position || "unknown";
+            filterSummary.textContent = warning
+              ? `Photo filter: ${label} (fallback; switch: ${position})`
+              : `Photo filter: ${label} (switch: ${position})`;
             filterSummary.className = warning ? "filter-summary warning" : "filter-summary";
             filterSummary.title = warning
               ? details.error || "Filter switch unavailable; using Current"
