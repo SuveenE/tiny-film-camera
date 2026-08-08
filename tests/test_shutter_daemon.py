@@ -126,9 +126,7 @@ class ShutterDaemonTest(unittest.TestCase):
             patch.object(shutter_daemon.signal, "signal"),
         ):
             shutter_daemon.main()
-            self.assertEqual(
-                [button.pin for button in FakeButton.instances], [5, 17]
-            )
+            self.assertEqual([button.pin for button in FakeButton.instances], [5, 17])
             self.assertTrue(all(button.closed for button in FakeButton.instances))
             self.assertNotIn("hold_time", FakeButton.instances[0].kwargs)
             self.assertNotIn("hold_time", FakeButton.instances[1].kwargs)

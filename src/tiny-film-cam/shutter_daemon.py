@@ -325,7 +325,9 @@ def main() -> None:
             return
 
         try:
-            LOGGER.info("Video button pressed; recording %.1fs video", args.video_duration)
+            LOGGER.info(
+                "Video button pressed; recording %.1fs video", args.video_duration
+            )
             buzzer.click()
             buzzer.video_start()
             settings = VideoSettings(
