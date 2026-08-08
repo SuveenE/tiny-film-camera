@@ -3,6 +3,14 @@
 The SS23D32 switch selects **Black & white**, **Current**, or **Cold** for new
 photos. Videos are unchanged.
 
+The filter service is the only process that reads the switch GPIO pins. It
+debounces the contacts and writes the current selection to
+`data/filter-state.json`; web and physical-button captures read that state
+immediately before taking each photo. If the state is missing, invalid, or
+stale, captures fall back to **Current** and the web badge reports the fallback.
+Each saved photo also records the filter it used, so its gallery label does not
+change when the switch moves later.
+
 ## 1. Identify the terminals
 
 Power off and unplug the Pi. Choose either row of three switch terminals:
@@ -25,6 +33,8 @@ outer terminal at each end position and neither outer terminal in the centre.
 
 Leave the second row disconnected. **No resistor is required** because the code
 enables the Pi's internal pull-ups. Do not connect the switch to 3.3 V or 5 V.
+GPIO 26 and GPIO 20 avoid the photo button (GPIO 5), video button (GPIO 17),
+buzzer (GPIO 18), and UPS I2C pins (GPIO 2 and GPIO 3).
 
 ## 3. Test the switch
 
