@@ -23,10 +23,10 @@ web = importlib.import_module("web")
 
 
 class PhotoFiltersTest(unittest.TestCase):
-    def test_current_filter_keeps_pixels_unchanged(self) -> None:
+    def test_normal_filter_keeps_pixels_unchanged(self) -> None:
         image = Image.new("RGB", (1, 1), (80, 100, 120))
 
-        filtered = photo_filters.apply_photo_filter(image, "current")
+        filtered = photo_filters.apply_photo_filter(image, "normal")
 
         self.assertEqual(filtered.getpixel((0, 0)), (80, 100, 120))
 
@@ -65,7 +65,7 @@ class PhotoFiltersTest(unittest.TestCase):
         self.assertFalse(status["using_fallback"])
         self.assertEqual(status["active_filter"]["id"], "cold")
 
-    def test_stale_or_unknown_switch_selection_falls_back_to_current(self) -> None:
+    def test_stale_or_unknown_switch_selection_falls_back_to_normal(self) -> None:
         with TemporaryDirectory() as tmpdir:
             project_root = Path(tmpdir)
             cache_path = project_root / "data" / "filter-state.json"
@@ -95,9 +95,9 @@ class PhotoFiltersTest(unittest.TestCase):
             unknown = photo_filters.photo_filter_status_from_cache(project_root)
 
         self.assertTrue(stale["using_fallback"])
-        self.assertEqual(stale["active_filter"]["id"], "current")
+        self.assertEqual(stale["active_filter"]["id"], "normal")
         self.assertTrue(unknown["using_fallback"])
-        self.assertEqual(unknown["active_filter"]["id"], "current")
+        self.assertEqual(unknown["active_filter"]["id"], "normal")
         self.assertIn("Unknown photo filter", unknown["error"])
 
     def test_metadata_round_trip_and_delete(self) -> None:

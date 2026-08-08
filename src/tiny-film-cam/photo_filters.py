@@ -6,18 +6,18 @@ from typing import Literal, cast
 from filter_switch import filter_status_from_cache
 
 
-PhotoFilterName = Literal["black_and_white", "current", "cold"]
-DEFAULT_PHOTO_FILTER: PhotoFilterName = "current"
-PHOTO_FILTER_NAMES = ("black_and_white", "current", "cold")
+PhotoFilterName = Literal["black_and_white", "normal", "cold"]
+DEFAULT_PHOTO_FILTER: PhotoFilterName = "normal"
+PHOTO_FILTER_NAMES = ("black_and_white", "normal", "cold")
 PHOTO_FILTER_DETAILS: dict[PhotoFilterName, dict[str, object]] = {
     "black_and_white": {
         "id": "black_and_white",
         "label": "Black & white",
         "version": 1,
     },
-    "current": {
-        "id": "current",
-        "label": "Current",
+    "normal": {
+        "id": "normal",
+        "label": "Normal",
         "version": 1,
     },
     "cold": {
@@ -67,7 +67,7 @@ def _scaled_lut(multiplier: float) -> list[int]:
 
 def apply_photo_filter(image, name: PhotoFilterName):
     """Apply a lightweight, versioned photo look to a Pillow image."""
-    if name == "current":
+    if name == "normal":
         return image
 
     from PIL import Image, ImageEnhance, ImageOps

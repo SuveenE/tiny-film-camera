@@ -43,7 +43,7 @@ class FilterSwitchTest(unittest.TestCase):
             selections,
             {
                 "left": "black_and_white",
-                "center": "current",
+                "center": "normal",
                 "right": "cold",
             },
         )
@@ -53,7 +53,7 @@ class FilterSwitchTest(unittest.TestCase):
             "os.environ",
             {
                 "TINY_FILM_FILTER_LEFT": "cold",
-                "TINY_FILM_FILTER_CENTER": "current",
+                "TINY_FILM_FILTER_CENTER": "normal",
                 "TINY_FILM_FILTER_RIGHT": "black_and_white",
             },
             clear=True,
@@ -90,7 +90,7 @@ class FilterSwitchTest(unittest.TestCase):
 
         self.assertTrue(status["ok"])
         self.assertEqual(status["position"], "center")
-        self.assertEqual(status["selection"], "current")
+        self.assertEqual(status["selection"], "normal")
         self.assertFalse(status["stale"])
 
     def test_stale_and_missing_cache_statuses(self) -> None:

@@ -859,7 +859,7 @@ def render_page() -> bytes:
 
           function renderFilter(details) {
             const activeFilter = details.active_filter || {};
-            const label = activeFilter.label || "Current";
+            const label = activeFilter.label || "Normal";
             const warning = Boolean(details.using_fallback || details.stale || !details.ok);
             const position = details.position || "unknown";
             filterSummary.textContent = warning
@@ -867,7 +867,7 @@ def render_page() -> bytes:
               : `Photo filter: ${label} (switch: ${position})`;
             filterSummary.className = warning ? "filter-summary warning" : "filter-summary";
             filterSummary.title = warning
-              ? details.error || "Filter switch unavailable; using Current"
+              ? details.error || "Filter switch unavailable; using Normal"
               : `Physical switch: ${details.position}`;
           }
 

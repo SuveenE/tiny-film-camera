@@ -71,7 +71,7 @@ class CameraRotationTest(unittest.TestCase):
         self.assertEqual(settings.exposure_value, -0.7)
         self.assertEqual(settings.awb_mode, "daylight")
         self.assertFalse(settings.awb_lock)
-        self.assertEqual(settings.photo_filter, "current")
+        self.assertEqual(settings.photo_filter, "normal")
 
     def test_capture_settings_reads_film_source_controls_from_env(self) -> None:
         with patch.dict(

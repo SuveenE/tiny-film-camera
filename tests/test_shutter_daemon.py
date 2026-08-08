@@ -116,7 +116,7 @@ class ShutterDaemonTest(unittest.TestCase):
             patch.object(
                 shutter_daemon,
                 "selected_photo_filter_from_cache",
-                return_value="current",
+                return_value="normal",
             ),
             patch.object(
                 shutter_daemon.threading,
@@ -140,7 +140,7 @@ class ShutterDaemonTest(unittest.TestCase):
 
             capture_photos.assert_called_once()
             record_video.assert_called_once()
-            self.assertEqual(capture_photos.call_args.args[0].photo_filter, "current")
+            self.assertEqual(capture_photos.call_args.args[0].photo_filter, "normal")
             self.assertEqual(record_video.call_args.args[0].duration_seconds, 10.0)
 
 

@@ -16,7 +16,7 @@ Choose one of the three JPEG looks directly with:
 
 ```bash
 python3 src/tiny-film-cam/capture.py --photo-filter black_and_white
-python3 src/tiny-film-cam/capture.py --photo-filter current
+python3 src/tiny-film-cam/capture.py --photo-filter normal
 python3 src/tiny-film-cam/capture.py --photo-filter cold
 ```
 
