@@ -39,15 +39,15 @@ pull-up resistors; the switch needs no 3.3 V or 5 V connection.
 
 | Switch contact | Raspberry Pi Zero 2 W |
 | --- | --- |
-| outer A | BCM GPIO 27, physical pin 13 |
-| common/centre | GND, physical pin 14 |
-| outer B | BCM GPIO 22, physical pin 15 |
+| outer A | BCM GPIO 26, physical pin 37 |
+| common/centre | GND, physical pin 39 |
+| outer B | BCM GPIO 20, physical pin 38 |
 | second row, if present | leave disconnected |
 
 These pins avoid the photo button (BCM 17), video button (BCM 5), buzzer
 (BCM 18), and UPS I2C (BCM 2/3) connections.
 
-| GPIO 27 | GPIO 22 | Selection |
+| GPIO 26 | GPIO 20 | Selection |
 | --- | --- | --- |
 | LOW | HIGH | Black & white |
 | HIGH | HIGH | Current |
@@ -68,7 +68,7 @@ cache immediately before each photo.
 | Area | Planned change |
 | --- | --- |
 | `filter_switch.py` | Define positions, GPIO truth-table mapping, cache format, stale/error handling, and configurable position-to-filter mapping. |
-| `filter_daemon.py` | Own GPIO 27/22, debounce transitions, and write the initial and changed states to the cache. |
+| `filter_daemon.py` | Own GPIO 26/20, debounce transitions, and write the initial and changed states to the cache. |
 | `photo_filters.py` | Hold the stable IDs (`black_and_white`, `current`, `cold`), display names, versions, and lightweight Pillow filter recipes. |
 | `camera.py` | Add the chosen filter to `CaptureSettings` and apply it after rotation but before JPEG encoding. Keep the current raw camera controls common to all three looks. |
 | `shutter_daemon.py` | Resolve the cached selector state at button-press time, not only at service startup. |

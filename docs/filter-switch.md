@@ -19,9 +19,9 @@ outer terminal at each end position and neither outer terminal in the centre.
 
 | Switch terminal | Raspberry Pi Zero 2 W |
 | --- | --- |
-| outer A | BCM GPIO 27, physical pin 13 |
-| common | GND, physical pin 14 |
-| outer B | BCM GPIO 22, physical pin 15 |
+| outer A | BCM GPIO 26, physical pin 37 |
+| common | GND, physical pin 39 |
+| outer B | BCM GPIO 20, physical pin 38 |
 
 Leave the second row disconnected. **No resistor is required** because the code
 enables the Pi's internal pull-ups. Do not connect the switch to 3.3 V or 5 V.
@@ -38,7 +38,7 @@ python3 src/tiny-film-cam/filter_switch_test.py
 
 Move the switch through all three positions. The expected readings are:
 
-| GPIO 27 | GPIO 22 | Filter |
+| GPIO 26 | GPIO 20 | Filter |
 | --- | --- | --- |
 | LOW | HIGH | Black & white |
 | HIGH | HIGH | Current |

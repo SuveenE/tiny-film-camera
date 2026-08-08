@@ -45,8 +45,8 @@
     BCM GPIO 18 (physical pin 12). The shutter daemon enables that pin by
     default — test with `python3 src/tiny-film-cam/buzzer.py`. See
     [buzzer.md](buzzer.md).
-12. Optionally wire and test the SS23D32 photo-filter switch on BCM GPIO 27 and
-    22. See [filter-switch.md](filter-switch.md); no external resistors are
+12. Optionally wire and test the SS23D32 photo-filter switch on BCM GPIO 26 and
+    20. See [filter-switch.md](filter-switch.md); no external resistors are
     required.
 13. Install the Tiny Film boot services:
    ```bash

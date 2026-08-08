@@ -9,8 +9,8 @@ from typing import Literal
 
 FilterPosition = Literal["left", "center", "right"]
 
-DEFAULT_LEFT_PIN = 27
-DEFAULT_RIGHT_PIN = 22
+DEFAULT_LEFT_PIN = 26
+DEFAULT_RIGHT_PIN = 20
 DEFAULT_CACHE_PATH = "data/filter-state.json"
 DEFAULT_STALE_SECONDS = 15.0
 DEFAULT_LEFT_SELECTION = "black_and_white"

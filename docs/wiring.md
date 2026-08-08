@@ -20,17 +20,17 @@ unconnected.
 
 | Slider terminal | Raspberry Pi |
 | --- | --- |
-| Outer A | BCM GPIO 27 (physical pin 13) |
-| Centre/common | GND (physical pin 14) |
-| Outer B | BCM GPIO 22 (physical pin 15) |
+| Outer A | BCM GPIO 26 (physical pin 37) |
+| Centre/common | GND (physical pin 39) |
+| Outer B | BCM GPIO 20 (physical pin 38) |
 
 The slider positions select:
 
 | Slider connection | Photo filter |
 | --- | --- |
-| GPIO 27 connected to GND | Black & white |
+| GPIO 26 connected to GND | Black & white |
 | Neither outer terminal connected to GND | Current |
-| GPIO 22 connected to GND | Cold |
+| GPIO 20 connected to GND | Cold |
 
 ## Passive buzzer
 
