@@ -1,13 +1,13 @@
 # Set up the photo-filter switch
 
-The SS23D32 switch selects **Black & white**, **Current**, or **Cold** for new
+The SS23D32 switch selects **Black & white**, **Normal**, or **Cold** for new
 photos. Videos are unchanged.
 
 The filter service is the only process that reads the switch GPIO pins. It
 debounces the contacts and writes the current selection to
 `data/filter-state.json`; web and physical-button captures read that state
 immediately before taking each photo. If the state is missing, invalid, or
-stale, captures fall back to **Current** and the web badge reports the fallback.
+stale, captures fall back to **Normal** and the web badge reports the fallback.
 Each saved photo also records the filter it used, so its gallery label does not
 change when the switch moves later.
 
@@ -51,7 +51,7 @@ Move the switch through all three positions. The expected readings are:
 | GPIO 26 | GPIO 20 | Filter |
 | --- | --- | --- |
 | LOW | HIGH | Black & white |
-| HIGH | HIGH | Current |
+| HIGH | HIGH | Normal |
 | HIGH | LOW | Cold |
 
 Press `Ctrl+C` when finished. `LOW / LOW` indicates incorrect wiring.

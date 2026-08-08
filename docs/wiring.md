@@ -29,7 +29,7 @@ The slider positions select:
 | Slider connection | Photo filter |
 | --- | --- |
 | GPIO 26 connected to GND | Black & white |
-| Neither outer terminal connected to GND | Current |
+| Neither outer terminal connected to GND | Normal |
 | GPIO 20 connected to GND | Cold |
 
 ## Passive buzzer

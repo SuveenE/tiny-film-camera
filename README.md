@@ -18,7 +18,7 @@ phone-friendly local gallery—without sending your photos to the cloud.
 ## What it does
 
 - Use dedicated physical buttons for photos and short video clips.
-- Choose Black & white, Current, or Cold with a three-position hardware switch.
+- Choose Black & white, Normal, or Cold with a three-position hardware switch.
 - Capture, browse, download, and delete photos from a phone on the same Wi-Fi.
 - Monitor the Waveshare UPS battery from the web interface.
 - Apply configurable exposure, white-balance, focus, rotation, and JPEG settings.
