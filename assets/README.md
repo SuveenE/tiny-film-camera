@@ -16,6 +16,9 @@ Current enclosure parts, reference renders, and a compressed CAD demo:
 - `v1/v1-design.png` — assembled enclosure render
 - `v1/v1-cad.png` — CAD workspace render
 - `v1/cad-demo-v1.mp4` — short, web-friendly CAD model demo
+- `v1/product-images/camera-launch-clean.png` — clean studio product photo
+- `v1/product-images/camera-launch-dark.png` — dark studio product photo
+- `v1/product-images/camera-launch-warm.png` — warm studio product photo
 
 ## Third-party models
 
