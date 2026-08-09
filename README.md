@@ -1,8 +1,8 @@
 # Tiny Film Camera
 
 An open-source digital camera built around the Raspberry Pi Zero 2 W and Camera
-Module 3. Tiny Film pairs a physical shutter with film-inspired JPEG looks and a
-phone-friendly local gallery—without sending your photos to the cloud.
+Module 3. Tiny Film Camera pairs a physical shutter with film-inspired JPEG looks and a
+phone-friendly local gallery.
 
 <p align="center">
   <img src="assets/guides/readme-showcase.png" alt="Tiny Film Camera assembled, its components, and the v1 CAD design" width="920" />
