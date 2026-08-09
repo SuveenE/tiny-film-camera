@@ -5,7 +5,7 @@ Module 3. Tiny Film pairs a physical shutter with film-inspired JPEG looks and a
 phone-friendly local gallery—without sending your photos to the cloud.
 
 <p align="center">
-  <img src="assets/v1/product-images/camera-launch-warm.png" alt="Tiny Film Camera assembled" width="920" />
+  <img src="assets/guides/readme-showcase.png" alt="Tiny Film Camera assembled, its components, and the v1 CAD design" width="920" />
 </p>
 <p align="center">
   <sub>
