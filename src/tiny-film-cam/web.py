@@ -13,7 +13,6 @@ from pathlib import Path
 from urllib.parse import quote, unquote
 
 from battery import battery_status_from_cache
-from capture_metadata import delete_capture_metadata, read_capture_metadata
 from camera import (
     CameraCaptureError,
     CameraUnavailableError,
@@ -98,8 +97,6 @@ def build_capture_image(project_root: Path, image_path: Path) -> dict[str, objec
     root = captures_root(project_root).resolve()
     relative_path = image_path.resolve().relative_to(root).as_posix()
     stat = image_path.stat()
-    metadata = read_capture_metadata(image_path)
-    photo_filter = metadata.get("photo_filter")
     return {
         "filename": image_path.name,
         "relative_path": relative_path,
@@ -109,7 +106,6 @@ def build_capture_image(project_root: Path, image_path: Path) -> dict[str, objec
         "delete_url": f"/api/captures/{quote(relative_path)}",
         "modified_unix": stat.st_mtime,
         "size_bytes": stat.st_size,
-        "photo_filter": photo_filter if isinstance(photo_filter, dict) else None,
     }
 
 
@@ -164,7 +160,10 @@ def delete_capture_image(
     deleted_path = image_path.relative_to(root).as_posix()
     deleted_name = image_path.name
     image_path.unlink()
-    delete_capture_metadata(image_path)
+    try:
+        image_path.with_name(f"{image_path.name}.json").unlink()
+    except FileNotFoundError:
+        pass
     remove_empty_capture_dirs(project_root, image_path.parent)
     return {
         "ok": True,
@@ -940,10 +939,7 @@ def render_page() -> bytes:
             name.textContent = image.relative_path || image.filename;
             const meta = document.createElement("span");
             meta.className = "meta";
-            const filterLabel = image.photo_filter && image.photo_filter.label
-              ? image.photo_filter.label
-              : "";
-            meta.textContent = [formatDate(image.modified_unix), formatBytes(image.size_bytes), filterLabel]
+            meta.textContent = [formatDate(image.modified_unix), formatBytes(image.size_bytes)]
               .filter(Boolean)
               .join(" / ");
             text.append(name, meta);
