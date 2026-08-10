@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import http.client
 import importlib
+import json
 from pathlib import Path
 import sys
 import threading
@@ -39,6 +40,34 @@ class RenderPageTest(unittest.TestCase):
         self.assertNotIn('id="filter-active-label"', page)
         self.assertNotIn('id="filter-state"', page)
 
+    def test_home_page_limits_the_gallery_and_supports_batch_photo_saving(self) -> None:
+        page = web.render_page().decode("utf-8")
+
+        self.assertIn('data-page="home"', page)
+        self.assertIn('href="/gallery"', page)
+        self.assertIn('id="save-selected-button"', page)
+        self.assertIn("const HOME_GALLERY_LIMIT = 50", page)
+        self.assertIn("const MAX_SELECTED_PHOTOS = 10", page)
+        self.assertIn("navigator.share(shareData)", page)
+
+    def test_gallery_page_has_a_back_control(self) -> None:
+        page = web.render_page("gallery").decode("utf-8")
+
+        self.assertIn('data-page="gallery"', page)
+        self.assertIn('href="/" id="back-button"', page)
+        self.assertIn("Gallery · Suv's Tiny Film Camera", page)
+
+
+class CaptureListLimitTest(unittest.TestCase):
+    def test_parses_and_caps_positive_gallery_limits(self) -> None:
+        self.assertEqual(web.parse_capture_list_limit("limit=12"), 12)
+        self.assertEqual(web.parse_capture_list_limit("limit=500"), 50)
+
+    def test_ignores_missing_invalid_and_non_positive_limits(self) -> None:
+        for query in ("", "limit=nope", "limit=0", "limit=-2"):
+            with self.subTest(query=query):
+                self.assertIsNone(web.parse_capture_list_limit(query))
+
 
 class CaptureMediaServerTest(unittest.TestCase):
     def setUp(self) -> None:
@@ -69,11 +98,12 @@ class CaptureMediaServerTest(unittest.TestCase):
         self,
         method: str,
         headers: dict[str, str] | None = None,
+        path: str = "/image/captures/2026-08-10/clip.mp4",
     ) -> tuple[int, dict[str, str], bytes]:
         connection = http.client.HTTPConnection(*self.server.server_address)
         connection.request(
             method,
-            "/image/captures/2026-08-10/clip.mp4",
+            path,
             headers=headers or {},
         )
         response = connection.getresponse()
@@ -105,6 +135,24 @@ class CaptureMediaServerTest(unittest.TestCase):
         self.assertEqual(body, b"")
         self.assertEqual(headers["Accept-Ranges"], "bytes")
         self.assertEqual(headers["Content-Length"], "10")
+
+    def test_serves_the_dedicated_gallery_page(self) -> None:
+        status, _, body = self.request("GET", path="/gallery")
+
+        self.assertEqual(status, 200)
+        self.assertIn(b'data-page="gallery"', body)
+        self.assertIn(b'id="back-button"', body)
+
+    def test_limited_image_api_reports_the_complete_capture_count(self) -> None:
+        for index in range(51):
+            (self.capture_path.parent / f"photo-{index:02d}.jpg").write_bytes(b"photo")
+
+        status, _, body = self.request("GET", path="/api/images?limit=50")
+        payload = json.loads(body)
+
+        self.assertEqual(status, 200)
+        self.assertEqual(len(payload["images"]), 50)
+        self.assertEqual(payload["total"], 52)
 
 
 if __name__ == "__main__":
