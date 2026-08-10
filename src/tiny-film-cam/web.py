@@ -415,17 +415,6 @@ def render_page() -> bytes:
             letter-spacing: 0.08em;
             text-transform: uppercase;
           }
-          .mode-copy strong {
-            font-size: 16px;
-          }
-          .mode-state {
-            color: var(--muted);
-            font-size: 11px;
-            line-height: 1.35;
-          }
-          .filter-summary.warning .mode-state {
-            color: var(--accent-dark);
-          }
           .mode-options {
             display: grid;
             gap: 8px;
@@ -722,12 +711,8 @@ def render_page() -> bytes:
               padding: 11px 12px;
             }
             .mode-copy {
-              gap: 1px;
-              grid-template-columns: auto 1fr;
-              column-gap: 8px;
+              display: block;
             }
-            .mode-copy .eyebrow,
-            .mode-copy .mode-state { grid-column: 1 / -1; }
             .mode-option {
               flex-direction: column;
               font-size: 10px;
@@ -786,8 +771,6 @@ def render_page() -> bytes:
             <div class="filter-summary warning" id="filter-summary" aria-live="polite">
               <div class="mode-copy">
                 <span class="eyebrow">Current photo mode</span>
-                <strong id="filter-active-label">Checking...</strong>
-                <span class="mode-state" id="filter-state">Checking mode</span>
               </div>
               <div class="mode-options" role="list" aria-label="Available photo modes">
                 <div class="mode-option" data-filter="black_and_white" role="listitem">
@@ -848,8 +831,6 @@ def render_page() -> bytes:
           const recordButton = document.getElementById("record-button");
           const recordButtonLabel = document.getElementById("record-button-label");
           const filterSummary = document.getElementById("filter-summary");
-          const filterActiveLabel = document.getElementById("filter-active-label");
-          const filterState = document.getElementById("filter-state");
           const modeOptions = Array.from(document.querySelectorAll(".mode-option"));
           let captureImages = [];
           let selectedCaptureIndex = 0;
@@ -1170,15 +1151,15 @@ def render_page() -> bytes:
             const label = activeFilter.label || "Normal";
             const activeFilterId = activeFilter.id || "normal";
             const warning = Boolean(details.using_fallback || details.stale || !details.ok);
-            const position = details.position || "unknown";
-            filterActiveLabel.textContent = label;
-            filterState.textContent = warning
-              ? `Fallback mode · switch ${position}`
-              : `Mode · ${position}`;
             filterSummary.className = warning ? "filter-summary warning" : "filter-summary";
-            filterSummary.title = warning
+            const summary = warning
               ? details.error || "Filter switch unavailable; using Normal"
               : `Current mode: ${label}`;
+            filterSummary.title = summary;
+            filterSummary.setAttribute(
+              "aria-label",
+              warning ? `Current photo mode: ${label}. ${summary}` : `Current photo mode: ${label}`,
+            );
             modeOptions.forEach((option) => {
               const active = option.dataset.filter === activeFilterId;
               option.classList.toggle("active", active);

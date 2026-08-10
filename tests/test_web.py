@@ -36,6 +36,8 @@ class RenderPageTest(unittest.TestCase):
         self.assertIn('id="capture-button"', page)
         self.assertNotIn('id="preview-heading"', page)
         self.assertNotIn('id="capture-position"', page)
+        self.assertNotIn('id="filter-active-label"', page)
+        self.assertNotIn('id="filter-state"', page)
 
 
 class CaptureMediaServerTest(unittest.TestCase):
