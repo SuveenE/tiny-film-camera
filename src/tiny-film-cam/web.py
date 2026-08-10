@@ -230,30 +230,38 @@ def render_page() -> bytes:
         <style>
           :root {
             color-scheme: light;
-            --bg: #f7f7f4;
-            --fg: #111;
-            --muted: #62605a;
-            --line: #d5d2ca;
-            --accent: #b23a30;
+            --bg: #f3efe7;
+            --surface: #fffdf8;
+            --surface-strong: #fff;
+            --fg: #1d1b17;
+            --muted: #706c63;
+            --line: #d9d2c5;
+            --accent: #e34f32;
+            --accent-dark: #a82f1e;
+            --gold: #f3b83f;
+            --blue: #4b78c2;
+            --shadow: 0 18px 45px rgba(58, 44, 27, 0.09);
           }
           * { box-sizing: border-box; }
           body {
             margin: 0;
-            background: var(--bg);
+            background:
+              radial-gradient(circle at 8% -8%, rgba(243, 184, 63, 0.2), transparent 27rem),
+              var(--bg);
             color: var(--fg);
             font-family: ui-monospace, "SFMono-Regular", "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
           }
           main {
-            width: min(920px, 100%);
+            width: min(1080px, 100%);
             margin: 0 auto;
-            padding: 18px;
+            padding: 20px;
           }
           header {
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 18px;
-            padding: 8px 0 54px;
+            padding: 9px 0 42px;
           }
           h1, h2, p { margin: 0; }
           h1 {
@@ -264,7 +272,7 @@ def render_page() -> bytes:
           h2 { font-size: 22px; line-height: 1.1; font-weight: 650; letter-spacing: 0; }
           section {
             border-top: 1px solid var(--line);
-            padding: 18px 0 34px;
+            padding: 20px 0 38px;
           }
           .status {
             color: var(--muted);
@@ -284,26 +292,38 @@ def render_page() -> bytes:
           }
           .latest {
             display: grid;
-            gap: 14px;
+            gap: 16px;
           }
           .latest-frame {
-            min-height: 260px;
+            min-height: 340px;
             border: 1px solid var(--line);
-            background: #fff;
+            border-radius: 20px;
+            background: var(--surface-strong);
             display: grid;
             place-items: center;
             overflow: hidden;
+            position: relative;
+            box-shadow: var(--shadow);
           }
           .latest-frame img,
           .latest-frame video {
             display: block;
             width: 100%;
-            max-height: 64vh;
+            max-height: 68vh;
             object-fit: contain;
           }
           .empty {
             color: var(--muted);
             padding: 42px 16px;
+            text-align: center;
+          }
+          .media-error {
+            color: var(--muted);
+            display: grid;
+            gap: 12px;
+            justify-items: center;
+            max-width: 380px;
+            padding: 44px 24px;
             text-align: center;
           }
           .name {
@@ -319,13 +339,15 @@ def render_page() -> bytes:
           a.button,
           button.button {
             appearance: none;
-            background: transparent;
+            align-items: center;
+            background: var(--surface);
             border: 1px solid var(--fg);
             border-radius: 999px;
             color: var(--fg);
-            display: inline-block;
+            display: inline-flex;
             font-size: 14px;
             font-weight: 600;
+            gap: 8px;
             padding: 8px 13px;
             text-decoration: none;
             white-space: nowrap;
@@ -336,8 +358,27 @@ def render_page() -> bytes:
           }
           a.button.primary,
           button.button.primary {
-            background: var(--fg);
-            color: var(--bg);
+            background: var(--accent);
+            border-color: var(--accent-dark);
+            color: #fff;
+          }
+          .button svg {
+            display: block;
+            fill: none;
+            height: 18px;
+            stroke: currentColor;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            stroke-width: 2;
+            width: 18px;
+          }
+          .button.record svg {
+            color: var(--accent);
+            fill: currentColor;
+            stroke: none;
+          }
+          .button.primary svg {
+            color: #ffe7d8;
           }
           button.button:disabled {
             cursor: wait;
@@ -351,20 +392,96 @@ def render_page() -> bytes:
             justify-content: flex-end;
           }
           .filter-summary {
+            align-items: center;
+            background: rgba(255, 253, 248, 0.82);
             border: 1px solid var(--line);
-            border-radius: 999px;
-            color: var(--muted);
-            font-size: 12px;
-            padding: 8px 11px;
-            white-space: nowrap;
+            border-radius: 18px;
+            display: grid;
+            gap: 16px;
+            grid-template-columns: minmax(145px, 0.72fr) minmax(0, 2fr);
+            padding: 14px;
           }
           .filter-summary.warning {
-            border-color: var(--accent);
-            color: var(--accent);
+            border-color: rgba(227, 79, 50, 0.55);
+          }
+          .mode-copy {
+            display: grid;
+            gap: 3px;
+            padding: 0 4px;
+          }
+          .eyebrow {
+            color: var(--muted);
+            font-size: 11px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+          }
+          .mode-copy strong {
+            font-size: 16px;
+          }
+          .mode-state {
+            color: var(--muted);
+            font-size: 11px;
+            line-height: 1.35;
+          }
+          .filter-summary.warning .mode-state {
+            color: var(--accent-dark);
+          }
+          .mode-options {
+            display: grid;
+            gap: 8px;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+          }
+          .mode-option {
+            align-items: center;
+            border: 1px solid transparent;
+            border-radius: 13px;
+            color: var(--muted);
+            display: flex;
+            gap: 8px;
+            min-width: 0;
+            padding: 8px;
+          }
+          .mode-option.active {
+            background: var(--surface-strong);
+            border-color: var(--line);
+            box-shadow: 0 5px 14px rgba(58, 44, 27, 0.08);
+            color: var(--fg);
+            font-weight: 650;
+          }
+          .mode-icon {
+            align-items: center;
+            border-radius: 10px;
+            display: inline-flex;
+            flex: 0 0 auto;
+            height: 34px;
+            justify-content: center;
+            width: 34px;
+          }
+          .mode-icon svg {
+            display: block;
+            fill: none;
+            height: 19px;
+            stroke: currentColor;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            stroke-width: 1.9;
+            width: 19px;
+          }
+          [data-filter="black_and_white"] .mode-icon {
+            background: #34343a;
+            color: #fff;
+          }
+          [data-filter="normal"] .mode-icon {
+            background: #ffe1a0;
+            color: #9a5d00;
+          }
+          [data-filter="cold"] .mode-icon {
+            background: #dce9ff;
+            color: #285ba9;
           }
           .battery-summary {
             align-items: center;
-            color: var(--fg);
+            color: #367552;
             display: inline-flex;
             flex: 0 0 auto;
             font-size: 14px;
@@ -395,25 +512,98 @@ def render_page() -> bytes:
           .latest .section-heading {
             margin-bottom: 0;
           }
-          .capture-browser {
-            display: grid;
+          .heading-with-status {
+            align-items: baseline;
+            display: flex;
             gap: 12px;
           }
-          .capture-stage {
-            min-height: 260px;
-            border: 1px solid var(--line);
-            background: #fff;
+          .capture-browser {
             display: grid;
-            grid-template-columns: auto minmax(0, 1fr) auto;
-            align-items: center;
-            overflow: hidden;
+            gap: 14px;
+            grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
           }
-          .capture-stage img,
-          .capture-stage video {
+          .gallery-item {
+            appearance: none;
+            background: transparent;
+            border: 0;
+            color: var(--fg);
+            cursor: pointer;
+            display: grid;
+            font-family: inherit;
+            gap: 7px;
+            min-width: 0;
+            overflow: hidden;
+            padding: 0;
+            text-align: left;
+          }
+          .gallery-thumb {
+            aspect-ratio: 4 / 3;
+            background: #e8e2d8;
+            border: 2px solid transparent;
+            border-radius: 14px;
+            display: grid;
+            overflow: hidden;
+            place-items: center;
+            position: relative;
+            transition: border-color 140ms ease, transform 140ms ease;
+          }
+          .gallery-item:hover .gallery-thumb {
+            transform: translateY(-2px);
+          }
+          .gallery-item.selected .gallery-thumb {
+            border-color: var(--accent);
+          }
+          .gallery-thumb img {
             display: block;
+            height: 100%;
             width: 100%;
-            max-height: 62vh;
-            object-fit: contain;
+            object-fit: cover;
+          }
+          .gallery-video {
+            align-content: center;
+            background: linear-gradient(145deg, #272b36, #46506c);
+            color: #fff;
+            display: grid;
+            height: 100%;
+            justify-items: center;
+            width: 100%;
+          }
+          .gallery-video svg {
+            fill: rgba(255, 255, 255, 0.22);
+            height: 42px;
+            stroke: #fff;
+            stroke-linejoin: round;
+            stroke-width: 1.5;
+            width: 42px;
+          }
+          .media-badge {
+            align-items: center;
+            -webkit-backdrop-filter: blur(8px);
+            backdrop-filter: blur(8px);
+            background: rgba(20, 20, 20, 0.72);
+            border-radius: 999px;
+            bottom: 7px;
+            color: #fff;
+            display: inline-flex;
+            font-size: 10px;
+            gap: 4px;
+            padding: 4px 7px;
+            position: absolute;
+            right: 7px;
+          }
+          .media-badge svg {
+            fill: currentColor;
+            height: 9px;
+            stroke: none;
+            width: 9px;
+          }
+          .gallery-caption {
+            color: var(--muted);
+            font-size: 11px;
+            overflow: hidden;
+            padding: 0 2px;
+            text-overflow: ellipsis;
+            white-space: nowrap;
           }
           .capture-info {
             display: grid;
@@ -468,6 +658,12 @@ def render_page() -> bytes:
             border-color: var(--accent);
             color: var(--accent);
           }
+          .gallery-item:focus-visible,
+          .button:focus-visible,
+          .icon-button:focus-visible {
+            outline: 3px solid rgba(75, 120, 194, 0.4);
+            outline-offset: 3px;
+          }
           .details {
             display: grid;
             border-top: 1px solid var(--line);
@@ -513,20 +709,51 @@ def render_page() -> bytes:
             font-weight: 600;
           }
           @media (max-width: 640px) {
+            main { padding: 14px; }
             header {
               align-items: flex-start;
-              padding-bottom: 42px;
+              padding-bottom: 34px;
             }
             h1 { font-size: 18px; }
-            .section-heading { align-items: center; }
-            .capture-stage {
-              grid-template-columns: 48px minmax(0, 1fr) 48px;
-              min-height: 220px;
+            .section-heading {
+              align-items: flex-start;
+              flex-direction: column;
             }
-            .capture-stage .icon-button { margin: 0 4px; }
+            .actions { justify-content: flex-start; }
+            .filter-summary {
+              align-items: stretch;
+              grid-template-columns: 1fr;
+            }
+            .mode-copy {
+              grid-template-columns: auto 1fr;
+              column-gap: 8px;
+            }
+            .mode-copy .eyebrow,
+            .mode-copy .mode-state { grid-column: 1 / -1; }
+            .mode-option {
+              flex-direction: column;
+              font-size: 10px;
+              gap: 5px;
+              justify-content: center;
+              padding: 7px 3px;
+              text-align: center;
+            }
+            .mode-icon { height: 32px; width: 32px; }
+            .latest-frame { min-height: 220px; }
+            .capture-browser {
+              gap: 11px 8px;
+              grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+            .gallery-thumb { border-radius: 10px; }
             .capture-info { grid-template-columns: minmax(0, 1fr) auto; }
+            .capture-info .name { font-size: 12px; }
+            .capture-info .meta { font-size: 10px; }
+            .icon-button { height: 38px; width: 38px; }
             .metric { padding: 13px 10px; }
             .detail { grid-template-columns: 1fr; gap: 3px; }
+          }
+          @media (prefers-reduced-motion: reduce) {
+            .gallery-thumb { transition: none; }
           }
         </style>
       </head>
@@ -547,20 +774,56 @@ def render_page() -> bytes:
 
           <section class="latest">
             <div class="section-heading">
-              <h2>Latest</h2>
+              <div class="heading-with-status">
+                <h2 id="preview-heading">Latest</h2>
+                <p class="status" id="capture-position"></p>
+              </div>
               <div class="actions">
-                <span class="filter-summary warning" id="filter-summary" aria-live="polite">Photo filter: checking...</span>
-                <button class="button" id="record-button" type="button">Record 10s</button>
-                <button class="button primary" id="capture-button" type="button">Take Photo</button>
+                <button class="button record" id="record-button" type="button">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7"></circle></svg>
+                  <span id="record-button-label">Record 10s</span>
+                </button>
+                <button class="button primary" id="capture-button" type="button">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h3l2-3h6l2 3h3a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2Z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+                  <span id="capture-button-label">Take Photo</span>
+                </button>
+              </div>
+            </div>
+            <div class="filter-summary warning" id="filter-summary" aria-live="polite">
+              <div class="mode-copy">
+                <span class="eyebrow">Current photo mode</span>
+                <strong id="filter-active-label">Checking...</strong>
+                <span class="mode-state" id="filter-state">Checking mode</span>
+              </div>
+              <div class="mode-options" role="list" aria-label="Available photo modes">
+                <div class="mode-option" data-filter="black_and_white" role="listitem">
+                  <span class="mode-icon">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle><path d="M12 4a8 8 0 0 1 0 16Z"></path></svg>
+                  </span>
+                  <span>Black &amp; white</span>
+                </div>
+                <div class="mode-option" data-filter="normal" role="listitem">
+                  <span class="mode-icon">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41"></path></svg>
+                  </span>
+                  <span>Normal</span>
+                </div>
+                <div class="mode-option" data-filter="cold" role="listitem">
+                  <span class="mode-icon">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v20M4 6l16 12M20 6 4 18M8.5 4 12 6l3.5-2M8.5 20l3.5-2 3.5 2M3.5 10 7 12l-3.5 2M20.5 10 17 12l3.5 2"></path></svg>
+                  </span>
+                  <span>Cold</span>
+                </div>
               </div>
             </div>
             <div class="latest-frame" id="latest-frame"></div>
+            <div class="capture-info" id="capture-info"></div>
           </section>
 
           <section>
             <div class="section-heading">
-              <h2>Captures</h2>
-              <p class="status" id="capture-position"></p>
+              <h2>Gallery</h2>
+              <p class="status" id="gallery-count"></p>
             </div>
             <div class="capture-browser" id="capture-browser"></div>
           </section>
@@ -579,17 +842,27 @@ def render_page() -> bytes:
         <script>
           const statusElement = document.getElementById("status");
           const latestFrame = document.getElementById("latest-frame");
+          const captureInfo = document.getElementById("capture-info");
           const captureBrowser = document.getElementById("capture-browser");
           const capturePosition = document.getElementById("capture-position");
+          const galleryCount = document.getElementById("gallery-count");
+          const previewHeading = document.getElementById("preview-heading");
           const deviceDetails = document.getElementById("device-details");
           const batteryDetails = document.getElementById("battery-details");
           const batterySummary = document.getElementById("battery-summary");
           const batterySummaryPercent = document.getElementById("battery-summary-percent");
           const captureButton = document.getElementById("capture-button");
+          const captureButtonLabel = document.getElementById("capture-button-label");
           const recordButton = document.getElementById("record-button");
+          const recordButtonLabel = document.getElementById("record-button-label");
           const filterSummary = document.getElementById("filter-summary");
+          const filterActiveLabel = document.getElementById("filter-active-label");
+          const filterState = document.getElementById("filter-state");
+          const modeOptions = Array.from(document.querySelectorAll(".mode-option"));
           let captureImages = [];
           let selectedCaptureIndex = 0;
+          let renderedCaptureKey = "";
+          let renderedGalleryKey = "";
 
           function formatBytes(value) {
             if (!Number.isFinite(value)) return "";
@@ -629,8 +902,8 @@ def render_page() -> bytes:
             const icons = {
               delete: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path></svg>',
               download: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="M7 10l5 5 5-5"></path><path d="M12 15V3"></path></svg>',
-              next: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>',
-              previous: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg>',
+              video: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="13" height="14" rx="2"></rect><path d="m16 10 5-3v10l-5-3Z"></path></svg>',
+              play: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 7 8 5-8 5Z"></path></svg>',
             };
             return icons[name] || "";
           }
@@ -650,7 +923,8 @@ def render_page() -> bytes:
           function selectCapture(index) {
             if (index < 0 || index >= captureImages.length) return;
             selectedCaptureIndex = index;
-            renderCaptureBrowser();
+            renderSelectedCapture();
+            renderGallery();
           }
 
           function clampCaptureIndex(index, images) {
@@ -658,51 +932,8 @@ def render_page() -> bytes:
             return Math.max(0, Math.min(index, images.length - 1));
           }
 
-          function renderCaptureBrowser() {
-            captureBrowser.innerHTML = "";
-            if (!captureImages.length) {
-              capturePosition.textContent = "";
-              captureBrowser.innerHTML = '<div class="empty">No captures yet.</div>';
-              return;
-            }
-
-            const image = captureImages[selectedCaptureIndex];
-            const viewUrl = image.view_url || image.download_url || "";
-            capturePosition.textContent = `${selectedCaptureIndex + 1} of ${captureImages.length}`;
-
-            const stage = document.createElement("div");
-            stage.className = "capture-stage";
-
-            const previousButton = makeIconButton("button", "previous", "Previous capture");
-            previousButton.disabled = selectedCaptureIndex === 0;
-            previousButton.addEventListener("click", () => {
-              selectCapture(selectedCaptureIndex - 1);
-            });
-
-            const previewSrc = `${viewUrl}?v=${encodeURIComponent(image.modified_unix || "")}`;
-            let preview;
-            if (image.media_type === "video") {
-              preview = document.createElement("video");
-              preview.src = previewSrc;
-              preview.controls = true;
-              preview.playsInline = true;
-              preview.preload = "metadata";
-            } else {
-              preview = document.createElement("img");
-              preview.src = previewSrc;
-              preview.alt = image.filename || "Capture";
-            }
-
-            const nextButton = makeIconButton("button", "next", "Next capture");
-            nextButton.disabled = selectedCaptureIndex === captureImages.length - 1;
-            nextButton.addEventListener("click", () => {
-              selectCapture(selectedCaptureIndex + 1);
-            });
-
-            stage.append(previousButton, preview, nextButton);
-
-            const info = document.createElement("div");
-            info.className = "capture-info";
+          function renderCaptureInfo(image) {
+            captureInfo.innerHTML = "";
             const text = document.createElement("div");
             const name = document.createElement("div");
             name.className = "name";
@@ -728,9 +959,117 @@ def render_page() -> bytes:
               deleteCapture(image);
             });
             controls.append(downloadLink, deleteButton);
+            captureInfo.append(text, controls);
+          }
 
-            info.append(text, controls);
-            captureBrowser.append(stage, info);
+          function renderMediaError(image) {
+            const error = document.createElement("div");
+            error.className = "media-error";
+            const message = document.createElement("p");
+            message.textContent = "This video could not be played in the browser.";
+            const downloadLink = document.createElement("a");
+            downloadLink.className = "button";
+            downloadLink.href = image.download_url;
+            downloadLink.download = image.filename || "capture.mp4";
+            downloadLink.textContent = "Download video instead";
+            error.append(message, downloadLink);
+            latestFrame.replaceChildren(error);
+          }
+
+          function renderSelectedCapture(force = false) {
+            if (!captureImages.length) {
+              renderedCaptureKey = "";
+              capturePosition.textContent = "";
+              previewHeading.textContent = "Latest";
+              latestFrame.innerHTML = '<div class="empty">No captures yet.</div>';
+              captureInfo.innerHTML = "";
+              return;
+            }
+
+            const image = captureImages[selectedCaptureIndex];
+            const viewUrl = image.view_url || image.download_url || "";
+            const captureKey = `${image.relative_path || image.filename}:${image.modified_unix || ""}`;
+            capturePosition.textContent = `${selectedCaptureIndex + 1} of ${captureImages.length}`;
+            previewHeading.textContent = selectedCaptureIndex === 0 ? "Latest" : "Preview";
+            if (!force && renderedCaptureKey === captureKey) return;
+
+            renderedCaptureKey = captureKey;
+            latestFrame.innerHTML = "";
+            const previewSrc = `${viewUrl}?v=${encodeURIComponent(image.modified_unix || "")}`;
+            let preview;
+            if (image.media_type === "video") {
+              preview = document.createElement("video");
+              preview.controls = true;
+              preview.playsInline = true;
+              preview.setAttribute("playsinline", "");
+              preview.preload = "metadata";
+              preview.src = previewSrc;
+              preview.addEventListener("error", () => renderMediaError(image), { once: true });
+            } else {
+              preview = document.createElement("img");
+              preview.src = previewSrc;
+              preview.alt = image.filename || "Capture";
+              preview.decoding = "async";
+            }
+            latestFrame.appendChild(preview);
+            renderCaptureInfo(image);
+          }
+
+          function renderGallery() {
+            const galleryKey = `${selectedCaptureIndex}:${captureImages
+              .map((image) => `${image.relative_path}:${image.modified_unix}`)
+              .join("|")}`;
+            if (renderedGalleryKey === galleryKey) return;
+
+            renderedGalleryKey = galleryKey;
+            captureBrowser.innerHTML = "";
+            galleryCount.textContent = captureImages.length
+              ? `${captureImages.length} item${captureImages.length === 1 ? "" : "s"}`
+              : "";
+            if (!captureImages.length) {
+              captureBrowser.innerHTML = '<div class="empty">No captures yet.</div>';
+              return;
+            }
+
+            const fragment = document.createDocumentFragment();
+            captureImages.forEach((image, index) => {
+              const item = document.createElement("button");
+              item.type = "button";
+              item.className = index === selectedCaptureIndex ? "gallery-item selected" : "gallery-item";
+              item.setAttribute("aria-pressed", index === selectedCaptureIndex ? "true" : "false");
+              item.setAttribute("aria-label", `Preview ${image.filename || "capture"}`);
+
+              const thumb = document.createElement("span");
+              thumb.className = "gallery-thumb";
+              if (image.media_type === "video") {
+                const videoTile = document.createElement("span");
+                videoTile.className = "gallery-video";
+                videoTile.innerHTML = iconSvg("video");
+                const badge = document.createElement("span");
+                badge.className = "media-badge";
+                badge.innerHTML = `${iconSvg("play")} Video`;
+                thumb.append(videoTile, badge);
+              } else {
+                const thumbnail = document.createElement("img");
+                const viewUrl = image.view_url || image.download_url || "";
+                thumbnail.src = `${viewUrl}?v=${encodeURIComponent(image.modified_unix || "")}`;
+                thumbnail.alt = "";
+                thumbnail.loading = "lazy";
+                thumbnail.decoding = "async";
+                thumb.appendChild(thumbnail);
+              }
+
+              const caption = document.createElement("span");
+              caption.className = "gallery-caption";
+              caption.textContent = image.filename || image.relative_path || "Capture";
+              item.append(thumb, caption);
+              item.addEventListener("click", () => {
+                selectCapture(index);
+                latestFrame.scrollIntoView({ block: "center" });
+              });
+              fragment.appendChild(item);
+            });
+            captureBrowser.appendChild(fragment);
           }
 
           function renderImages(images, options = {}) {
@@ -751,27 +1090,8 @@ def render_page() -> bytes:
             }
 
             statusElement.textContent = `${images.length} capture${images.length === 1 ? "" : "s"}`;
-            latestFrame.innerHTML = "";
-            if (images.length) {
-              const latest = images[0];
-              const cacheBust = encodeURIComponent(latest.modified_unix || "");
-              if (latest.media_type === "video") {
-                const video = document.createElement("video");
-                video.src = `${latest.view_url}?v=${cacheBust}`;
-                video.controls = true;
-                video.playsInline = true;
-                video.preload = "metadata";
-                latestFrame.appendChild(video);
-              } else {
-                const image = document.createElement("img");
-                image.src = `/latest-image?v=${cacheBust}`;
-                image.alt = latest.filename || "Latest capture";
-                latestFrame.appendChild(image);
-              }
-            } else {
-              latestFrame.innerHTML = '<div class="empty">No captures yet.</div>';
-            }
-            renderCaptureBrowser();
+            renderSelectedCapture();
+            renderGallery();
           }
 
           function renderDetails(details) {
@@ -860,15 +1180,22 @@ def render_page() -> bytes:
           function renderFilter(details) {
             const activeFilter = details.active_filter || {};
             const label = activeFilter.label || "Normal";
+            const activeFilterId = activeFilter.id || "normal";
             const warning = Boolean(details.using_fallback || details.stale || !details.ok);
             const position = details.position || "unknown";
-            filterSummary.textContent = warning
-              ? `Photo filter: ${label} (fallback; switch: ${position})`
-              : `Photo filter: ${label} (switch: ${position})`;
+            filterActiveLabel.textContent = label;
+            filterState.textContent = warning
+              ? `Fallback mode · switch ${position}`
+              : `Mode · ${position}`;
             filterSummary.className = warning ? "filter-summary warning" : "filter-summary";
             filterSummary.title = warning
               ? details.error || "Filter switch unavailable; using Normal"
-              : `Physical switch: ${details.position}`;
+              : `Current mode: ${label}`;
+            modeOptions.forEach((option) => {
+              const active = option.dataset.filter === activeFilterId;
+              option.classList.toggle("active", active);
+              option.setAttribute("aria-current", active ? "true" : "false");
+            });
           }
 
           async function refreshImages(options = {}) {
@@ -926,7 +1253,7 @@ def render_page() -> bytes:
             const wasRecordDisabled = recordButton.disabled;
             captureButton.disabled = true;
             recordButton.disabled = true;
-            captureButton.textContent = "Taking...";
+            captureButtonLabel.textContent = "Taking...";
             statusElement.textContent = "Taking photo...";
             try {
               const response = await fetch("/api/capture", {
@@ -946,7 +1273,7 @@ def render_page() -> bytes:
             } finally {
               captureButton.disabled = false;
               recordButton.disabled = wasRecordDisabled;
-              captureButton.textContent = "Take Photo";
+              captureButtonLabel.textContent = "Take Photo";
             }
           }
 
@@ -955,7 +1282,7 @@ def render_page() -> bytes:
             const wasCaptureDisabled = captureButton.disabled;
             recordButton.disabled = true;
             captureButton.disabled = true;
-            recordButton.textContent = "Recording...";
+            recordButtonLabel.textContent = "Recording...";
             statusElement.textContent = "Recording video...";
             try {
               const response = await fetch("/api/record", {
@@ -975,7 +1302,7 @@ def render_page() -> bytes:
             } finally {
               recordButton.disabled = false;
               captureButton.disabled = wasCaptureDisabled;
-              recordButton.textContent = "Record 10s";
+              recordButtonLabel.textContent = "Record 10s";
             }
           }
 
@@ -1011,8 +1338,40 @@ def attachment_header(filename: str) -> str:
     return f'attachment; filename="{safe_filename}"'
 
 
+def parse_byte_range_header(
+    value: str | None, file_size: int
+) -> tuple[int, int] | None:
+    """Parse one HTTP byte range and return its inclusive bounds."""
+    if value is None:
+        return None
+    if file_size <= 0 or not value.startswith("bytes="):
+        raise ValueError("Invalid byte range")
+
+    requested_range = value[len("bytes=") :].strip()
+    if not requested_range or "," in requested_range:
+        raise ValueError("Only one byte range is supported")
+
+    start_text, separator, end_text = requested_range.partition("-")
+    if not separator or (not start_text and not end_text):
+        raise ValueError("Invalid byte range")
+
+    if start_text:
+        start = int(start_text)
+        end = int(end_text) if end_text else file_size - 1
+        if start < 0 or start >= file_size or end < start:
+            raise ValueError("Byte range is outside the file")
+        return start, min(end, file_size - 1)
+
+    suffix_length = int(end_text)
+    if suffix_length <= 0:
+        raise ValueError("Invalid suffix byte range")
+    return max(0, file_size - suffix_length), file_size - 1
+
+
 def build_handler(project_root: Path, port: int):
     class TinyFilmHandler(BaseHTTPRequestHandler):
+        protocol_version = "HTTP/1.1"
+
         def _send_bytes(
             self,
             body: bytes,
@@ -1040,19 +1399,61 @@ def build_handler(project_root: Path, port: int):
                 status=status,
             )
 
-        def _serve_capture(self, image_path: Path, as_attachment: bool = True) -> None:
-            body = image_path.read_bytes()
+        def _serve_capture(
+            self,
+            image_path: Path,
+            as_attachment: bool = True,
+            include_body: bool = True,
+        ) -> None:
+            stat = image_path.stat()
             content_type = (
                 mimetypes.guess_type(image_path.name)[0] or "application/octet-stream"
             )
-            headers = {}
+            try:
+                byte_range = parse_byte_range_header(
+                    self.headers.get("Range"), stat.st_size
+                )
+            except (TypeError, ValueError):
+                self.send_response(HTTPStatus.REQUESTED_RANGE_NOT_SATISFIABLE)
+                self.send_header("Accept-Ranges", "bytes")
+                self.send_header("Content-Range", f"bytes */{stat.st_size}")
+                self.send_header("Content-Length", "0")
+                self.end_headers()
+                return
+
+            start, end = byte_range or (0, stat.st_size - 1)
+            content_length = end - start + 1
+            status = HTTPStatus.PARTIAL_CONTENT if byte_range else HTTPStatus.OK
+            self.send_response(status)
+            self.send_header("Content-Type", content_type)
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Accept-Ranges", "bytes")
+            self.send_header("Content-Length", str(content_length))
+            self.send_header("Last-Modified", formatdate(stat.st_mtime, usegmt=True))
+            if byte_range:
+                self.send_header(
+                    "Content-Range", f"bytes {start}-{end}/{stat.st_size}"
+                )
             if as_attachment:
-                headers["Content-Disposition"] = attachment_header(image_path.name)
-            self._send_bytes(
-                body,
-                content_type,
-                extra_headers=headers,
-            )
+                self.send_header(
+                    "Content-Disposition", attachment_header(image_path.name)
+                )
+            self.end_headers()
+            if not include_body:
+                return
+
+            remaining = content_length
+            try:
+                with image_path.open("rb") as capture_file:
+                    capture_file.seek(start)
+                    while remaining > 0:
+                        chunk = capture_file.read(min(64 * 1024, remaining))
+                        if not chunk:
+                            break
+                        self.wfile.write(chunk)
+                        remaining -= len(chunk)
+            except (BrokenPipeError, ConnectionResetError):
+                return
 
         def _serve_latest_image(self, include_body: bool = True) -> None:
             image_path = get_latest_capture_path(project_root)
@@ -1140,6 +1541,28 @@ def build_handler(project_root: Path, port: int):
             request_path = self.path.split("?", 1)[0]
             if request_path == "/latest-image":
                 self._serve_latest_image(include_body=False)
+                return
+            if request_path.startswith("/image/captures/"):
+                relative_path = request_path[len("/image/captures/") :]
+                image_path = get_capture_image_by_relative_path(
+                    project_root, relative_path
+                )
+                if image_path is None:
+                    self.send_error(HTTPStatus.NOT_FOUND, "Capture not found")
+                    return
+                self._serve_capture(
+                    image_path, as_attachment=False, include_body=False
+                )
+                return
+            if request_path.startswith("/download/captures/"):
+                relative_path = request_path[len("/download/captures/") :]
+                image_path = get_capture_image_by_relative_path(
+                    project_root, relative_path
+                )
+                if image_path is None:
+                    self.send_error(HTTPStatus.NOT_FOUND, "Capture not found")
+                    return
+                self._serve_capture(image_path, include_body=False)
                 return
             self.send_error(HTTPStatus.NOT_FOUND, "Not Found")
 
