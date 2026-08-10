@@ -43,7 +43,7 @@ python3 src/tiny-film-cam/record.py
 
 ## Record a custom-length video
 ```bash
-python3 src/tiny-film-cam/record.py --duration 5 --width 1920 --height 1080 --fps 24
+python3 src/tiny-film-cam/record.py --duration 5 --width 1920 --height 1080 --fps 15
 ```
 
 ## Transfer photos to local machine
