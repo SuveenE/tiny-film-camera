@@ -4,6 +4,7 @@ import argparse
 import logging
 import os
 import signal
+import subprocess
 import threading
 from pathlib import Path
 
@@ -28,6 +29,8 @@ from photo_filters import selected_photo_filter_from_cache
 
 
 LOGGER = logging.getLogger("tiny_film.shutter")
+DEFAULT_BUZZER_READY_DELAY_SECONDS = 5.0
+SYSTEMD_RUNTIME_PATH = Path("/run/systemd/system")
 
 
 def env_bool(name: str, default: bool) -> bool:
@@ -77,6 +80,84 @@ def parse_exposure_brackets(value: str) -> tuple[float, ...]:
 
 def default_project_root() -> Path:
     return Path(__file__).resolve().parents[2]
+
+
+def wait_for_system_startup(stop_event: threading.Event) -> bool:
+    """Wait for systemd to finish booting, if this host uses systemd.
+
+    Returns ``False`` only when shutdown was requested while waiting. If
+    systemd is unavailable, the caller can still use its normal settle delay.
+    """
+    if stop_event.is_set():
+        return False
+    if not SYSTEMD_RUNTIME_PATH.is_dir():
+        return True
+
+    LOGGER.info("Waiting for system startup to finish before the ready cue")
+    try:
+        process = subprocess.Popen(
+            ("systemctl", "is-system-running", "--wait"),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+    except OSError as exc:
+        LOGGER.warning(
+            "Could not wait for system startup (%s); using the ready delay only",
+            exc,
+        )
+        return not stop_event.is_set()
+
+    while process.poll() is None:
+        if stop_event.wait(0.25):
+            try:
+                process.terminate()
+            except OSError:
+                pass
+            try:
+                process.wait(timeout=1.0)
+            except subprocess.TimeoutExpired:
+                try:
+                    process.kill()
+                except OSError:
+                    pass
+                process.wait()
+            return False
+
+    stdout, stderr = process.communicate()
+    state = stdout.strip()
+    if state in {"running", "degraded"}:
+        LOGGER.info("System startup finished with state %s", state)
+    else:
+        detail = state or stderr.strip() or f"exit status {process.returncode}"
+        LOGGER.warning(
+            "Could not confirm system startup state (%s); using the ready delay",
+            detail,
+        )
+    return not stop_event.is_set()
+
+
+def play_ready_when_settled(
+    *,
+    buzzer: ShutterBuzzer,
+    stop_event: threading.Event,
+    delay_seconds: float,
+) -> None:
+    """Play the ready cue after boot completion and a final settle delay."""
+    if not wait_for_system_startup(stop_event):
+        return
+
+    delay_seconds = max(0.0, delay_seconds)
+    if delay_seconds:
+        LOGGER.info(
+            "Waiting %.1f seconds for startup activity to settle",
+            delay_seconds,
+        )
+    if stop_event.wait(delay_seconds):
+        return
+
+    LOGGER.info("Startup settled; playing the ready cue")
+    buzzer.ready()
 
 
 def parse_args() -> argparse.Namespace:
@@ -158,6 +239,18 @@ def parse_args() -> argparse.Namespace:
         help=(
             "Photo capture cue: click, minimal, gentle, shutter, or sparkle "
             f"(default: {DEFAULT_PHOTO_SOUND})."
+        ),
+    )
+    parser.add_argument(
+        "--buzzer-ready-delay",
+        type=float,
+        default=env_float(
+            "TINY_FILM_BUZZER_READY_DELAY_SECONDS",
+            DEFAULT_BUZZER_READY_DELAY_SECONDS,
+        ),
+        help=(
+            "Seconds to wait after system startup finishes before the ready cue "
+            f"(default: {DEFAULT_BUZZER_READY_DELAY_SECONDS})."
         ),
     )
     parser.add_argument(
@@ -260,6 +353,7 @@ def main() -> None:
     output_dir = resolve_project_path(project_root, args.output_dir)
     capture_lock = threading.Lock()
     stop_event = threading.Event()
+    ready_thread: threading.Thread | None = None
     buzzer_pin = None if args.no_buzzer else args.buzzer_pin
     buzzer = ShutterBuzzer(
         buzzer_pin,
@@ -396,7 +490,17 @@ def main() -> None:
             args.buzzer_photo_sound,
             args.buzzer_photo_volume,
         )
-        buzzer.ready()
+        ready_thread = threading.Thread(
+            target=play_ready_when_settled,
+            kwargs={
+                "buzzer": buzzer,
+                "stop_event": stop_event,
+                "delay_seconds": args.buzzer_ready_delay,
+            },
+            name="tiny-film-ready-cue",
+            daemon=True,
+        )
+        ready_thread.start()
     elif args.no_buzzer or buzzer_pin is None:
         LOGGER.info("Buzzer feedback disabled")
 
@@ -404,6 +508,9 @@ def main() -> None:
         while not stop_event.wait(1.0):
             pass
     finally:
+        stop_event.set()
+        if ready_thread is not None:
+            ready_thread.join(timeout=2.0)
         photo_button.close()
         video_button.close()
         buzzer.close()

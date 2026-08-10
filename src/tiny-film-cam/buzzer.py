@@ -147,7 +147,7 @@ class ShutterBuzzer:
         return self._device is not None
 
     def ready(self) -> None:
-        """Confirmation that the shutter daemon initialized successfully."""
+        """Play the system-ready confirmation cue."""
         self.play(READY_SOUND, volume=self._volume)
 
     def click(self) -> None:
