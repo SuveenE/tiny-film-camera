@@ -512,11 +512,6 @@ def render_page() -> bytes:
           .latest .section-heading {
             margin-bottom: 0;
           }
-          .heading-with-status {
-            align-items: baseline;
-            display: flex;
-            gap: 12px;
-          }
           .capture-browser {
             display: grid;
             gap: 14px;
@@ -722,9 +717,12 @@ def render_page() -> bytes:
             .actions { justify-content: flex-start; }
             .filter-summary {
               align-items: stretch;
+              gap: 10px;
               grid-template-columns: 1fr;
+              padding: 11px 12px;
             }
             .mode-copy {
+              gap: 1px;
               grid-template-columns: auto 1fr;
               column-gap: 8px;
             }
@@ -733,12 +731,12 @@ def render_page() -> bytes:
             .mode-option {
               flex-direction: column;
               font-size: 10px;
-              gap: 5px;
+              gap: 4px;
               justify-content: center;
-              padding: 7px 3px;
+              padding: 5px 3px;
               text-align: center;
             }
-            .mode-icon { height: 32px; width: 32px; }
+            .mode-icon { height: 30px; width: 30px; }
             .latest-frame { min-height: 220px; }
             .capture-browser {
               gap: 11px 8px;
@@ -774,10 +772,6 @@ def render_page() -> bytes:
 
           <section class="latest">
             <div class="section-heading">
-              <div class="heading-with-status">
-                <h2 id="preview-heading">Latest</h2>
-                <p class="status" id="capture-position"></p>
-              </div>
               <div class="actions">
                 <button class="button record" id="record-button" type="button">
                   <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7"></circle></svg>
@@ -844,9 +838,7 @@ def render_page() -> bytes:
           const latestFrame = document.getElementById("latest-frame");
           const captureInfo = document.getElementById("capture-info");
           const captureBrowser = document.getElementById("capture-browser");
-          const capturePosition = document.getElementById("capture-position");
           const galleryCount = document.getElementById("gallery-count");
-          const previewHeading = document.getElementById("preview-heading");
           const deviceDetails = document.getElementById("device-details");
           const batteryDetails = document.getElementById("battery-details");
           const batterySummary = document.getElementById("battery-summary");
@@ -979,8 +971,6 @@ def render_page() -> bytes:
           function renderSelectedCapture(force = false) {
             if (!captureImages.length) {
               renderedCaptureKey = "";
-              capturePosition.textContent = "";
-              previewHeading.textContent = "Latest";
               latestFrame.innerHTML = '<div class="empty">No captures yet.</div>';
               captureInfo.innerHTML = "";
               return;
@@ -989,8 +979,6 @@ def render_page() -> bytes:
             const image = captureImages[selectedCaptureIndex];
             const viewUrl = image.view_url || image.download_url || "";
             const captureKey = `${image.relative_path || image.filename}:${image.modified_unix || ""}`;
-            capturePosition.textContent = `${selectedCaptureIndex + 1} of ${captureImages.length}`;
-            previewHeading.textContent = selectedCaptureIndex === 0 ? "Latest" : "Preview";
             if (!force && renderedCaptureKey === captureKey) return;
 
             renderedCaptureKey = captureKey;
