@@ -29,6 +29,15 @@ class ByteRangeTest(unittest.TestCase):
                 web.parse_byte_range_header(value, 10)
 
 
+class RenderPageTest(unittest.TestCase):
+    def test_capture_controls_do_not_render_latest_position_heading(self) -> None:
+        page = web.render_page().decode("utf-8")
+
+        self.assertIn('id="capture-button"', page)
+        self.assertNotIn('id="preview-heading"', page)
+        self.assertNotIn('id="capture-position"', page)
+
+
 class CaptureMediaServerTest(unittest.TestCase):
     def setUp(self) -> None:
         self.temporary_directory = TemporaryDirectory()
