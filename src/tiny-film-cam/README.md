@@ -88,7 +88,8 @@ python3 src/tiny-film-cam/web.py
 The web app serves captures from `data/captures/` and exposes:
 
 - `GET /`
-- `GET /api/images`
+- `GET /gallery`
+- `GET /api/images` (accepts an optional `limit` query parameter up to 50)
 - `POST /api/capture`
 - `POST /api/record`
 - `DELETE /api/captures/<capture-path>`

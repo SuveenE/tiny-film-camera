@@ -10,7 +10,7 @@ from email.utils import formatdate
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import quote, unquote
+from urllib.parse import parse_qs, quote, unquote, urlsplit
 
 from battery import battery_status_from_cache
 from capture_metadata import delete_capture_metadata, read_capture_metadata
@@ -32,6 +32,8 @@ from photo_filters import (
 IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".webp"}
 VIDEO_SUFFIXES = {".mp4"}
 CAPTURE_SUFFIXES = IMAGE_SUFFIXES | VIDEO_SUFFIXES
+HOME_GALLERY_LIMIT = 50
+MAX_SELECTED_PHOTOS = 10
 
 
 def media_type_for(path: Path) -> str:
@@ -87,11 +89,29 @@ def get_latest_capture_path(project_root: Path) -> Path | None:
     return images[0]
 
 
-def build_capture_image_list(project_root: Path) -> list[dict[str, object]]:
+def build_capture_image_list(
+    project_root: Path, limit: int | None = None
+) -> list[dict[str, object]]:
+    image_paths = iter_capture_images(project_root)
+    if limit is not None:
+        image_paths = image_paths[: max(0, limit)]
     return [
         build_capture_image(project_root, image_path)
-        for image_path in iter_capture_images(project_root)
+        for image_path in image_paths
     ]
+
+
+def parse_capture_list_limit(query: str) -> int | None:
+    raw_limit = parse_qs(query).get("limit", [None])[0]
+    if raw_limit is None:
+        return None
+    try:
+        limit = int(raw_limit)
+    except (TypeError, ValueError):
+        return None
+    if limit <= 0:
+        return None
+    return min(limit, HOME_GALLERY_LIMIT)
 
 
 def build_capture_image(project_root: Path, image_path: Path) -> dict[str, object]:
@@ -218,7 +238,7 @@ def build_device_details(project_root: Path, port: int) -> dict[str, object]:
     }
 
 
-def render_page() -> bytes:
+def render_page(page_name: str = "home") -> bytes:
     page = """
     <!doctype html>
     <html lang="en">
@@ -262,6 +282,14 @@ def render_page() -> bytes:
             justify-content: space-between;
             gap: 18px;
             padding: 9px 0 42px;
+          }
+          body[data-page="home"] .gallery-only { display: none; }
+          body[data-page="gallery"] .home-only { display: none; }
+          body[data-page="gallery"] .gallery-only { display: inline-flex; }
+          body[data-page="gallery"] header { padding-bottom: 20px; }
+          body[data-page="gallery"] .gallery-section {
+            border-top: 0;
+            padding-top: 6px;
           }
           h1, h2, p { margin: 0; }
           h1 {
@@ -498,6 +526,32 @@ def render_page() -> bytes:
             gap: 16px;
             margin-bottom: 14px;
           }
+          .gallery-heading-actions {
+            align-items: center;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+          }
+          .selection-toolbar {
+            align-items: center;
+            background: rgba(255, 253, 248, 0.86);
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            display: flex;
+            gap: 12px;
+            justify-content: space-between;
+            margin-bottom: 14px;
+            min-height: 58px;
+            padding: 9px 10px 9px 14px;
+          }
+          .selection-copy {
+            display: grid;
+            gap: 3px;
+          }
+          .selection-hint {
+            color: var(--muted);
+            font-size: 11px;
+          }
           .latest .section-heading {
             margin-bottom: 0;
           }
@@ -507,6 +561,15 @@ def render_page() -> bytes:
             grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
           }
           .gallery-item {
+            contain-intrinsic-size: auto 150px;
+            content-visibility: auto;
+            display: grid;
+            gap: 7px;
+            min-width: 0;
+            overflow: hidden;
+            position: relative;
+          }
+          .gallery-preview {
             appearance: none;
             background: transparent;
             border: 0;
@@ -516,9 +579,9 @@ def render_page() -> bytes:
             font-family: inherit;
             gap: 7px;
             min-width: 0;
-            overflow: hidden;
             padding: 0;
             text-align: left;
+            width: 100%;
           }
           .gallery-thumb {
             aspect-ratio: 4 / 3;
@@ -535,7 +598,11 @@ def render_page() -> bytes:
             transform: translateY(-2px);
           }
           .gallery-item.selected .gallery-thumb {
+            border-color: var(--blue);
+          }
+          .gallery-item.photo-selected .gallery-thumb {
             border-color: var(--accent);
+            box-shadow: inset 0 0 0 1px var(--accent);
           }
           .gallery-thumb img {
             display: block;
@@ -588,6 +655,38 @@ def render_page() -> bytes:
             padding: 0 2px;
             text-overflow: ellipsis;
             white-space: nowrap;
+          }
+          .photo-select-button {
+            align-items: center;
+            appearance: none;
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid var(--fg);
+            border-radius: 50%;
+            color: transparent;
+            cursor: pointer;
+            display: flex;
+            height: 30px;
+            justify-content: center;
+            padding: 0;
+            position: absolute;
+            right: 8px;
+            top: 8px;
+            width: 30px;
+            z-index: 2;
+          }
+          .photo-select-button[aria-pressed="true"] {
+            background: var(--accent);
+            border-color: #fff;
+            color: #fff;
+          }
+          .photo-select-button svg {
+            fill: none;
+            height: 17px;
+            stroke: currentColor;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            stroke-width: 2.5;
+            width: 17px;
           }
           .capture-info {
             display: grid;
@@ -642,7 +741,8 @@ def render_page() -> bytes:
             border-color: var(--accent);
             color: var(--accent);
           }
-          .gallery-item:focus-visible,
+          .gallery-preview:focus-visible,
+          .photo-select-button:focus-visible,
           .button:focus-visible,
           .icon-button:focus-visible {
             outline: 3px solid rgba(75, 120, 194, 0.4);
@@ -703,6 +803,12 @@ def render_page() -> bytes:
               align-items: flex-start;
               flex-direction: column;
             }
+            .gallery-heading-actions { width: 100%; }
+            .selection-toolbar {
+              align-items: stretch;
+              flex-direction: column;
+            }
+            .selection-toolbar .button { justify-content: center; }
             .actions { justify-content: flex-start; }
             .filter-summary {
               align-items: stretch;
@@ -740,12 +846,16 @@ def render_page() -> bytes:
           }
         </style>
       </head>
-      <body>
+      <body data-page="__PAGE_NAME__">
         <main>
           <p class="status visually-hidden" id="status" aria-live="polite">Checking captures...</p>
           <header>
-            <h1>Suv's Tiny Film Camera</h1>
-            <div class="battery-summary" id="battery-summary" aria-label="Battery unavailable" title="Battery unavailable">
+            <h1 id="page-title">Suv's Tiny Film Camera</h1>
+            <a class="button gallery-only" href="/" id="back-button">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg>
+              Back
+            </a>
+            <div class="battery-summary home-only" id="battery-summary" aria-label="Battery unavailable" title="Battery unavailable">
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M20 10v4"></path>
                 <rect x="3" y="7" width="15" height="10" rx="2"></rect>
@@ -755,7 +865,7 @@ def render_page() -> bytes:
             </div>
           </header>
 
-          <section class="latest">
+          <section class="latest home-only">
             <div class="section-heading">
               <div class="actions">
                 <button class="button record" id="record-button" type="button">
@@ -797,26 +907,39 @@ def render_page() -> bytes:
             <div class="capture-info" id="capture-info"></div>
           </section>
 
-          <section>
+          <section class="gallery-section">
             <div class="section-heading">
               <h2>Gallery</h2>
-              <p class="status" id="gallery-count"></p>
+              <div class="gallery-heading-actions">
+                <p class="status" id="gallery-count"></p>
+                <a class="button home-only" href="/gallery" id="view-gallery-button">View Gallery</a>
+              </div>
+            </div>
+            <div class="selection-toolbar">
+              <div class="selection-copy">
+                <p class="status" id="selection-status" aria-live="polite">0 of 10 photos selected</p>
+                <span class="selection-hint">Choose up to 10 photos to save together.</span>
+              </div>
+              <button class="button primary" id="save-selected-button" type="button" disabled>Save to phone</button>
             </div>
             <div class="capture-browser" id="capture-browser"></div>
           </section>
 
-          <section>
+          <section class="home-only">
             <h2>Battery</h2>
             <div class="details" id="battery-details"></div>
           </section>
 
-          <section>
+          <section class="home-only">
             <h2>Device</h2>
             <div class="details" id="device-details"></div>
           </section>
         </main>
 
         <script>
+          const isGalleryPage = document.body.dataset.page === "gallery";
+          const HOME_GALLERY_LIMIT = __HOME_GALLERY_LIMIT__;
+          const MAX_SELECTED_PHOTOS = __MAX_SELECTED_PHOTOS__;
           const statusElement = document.getElementById("status");
           const latestFrame = document.getElementById("latest-frame");
           const captureInfo = document.getElementById("capture-info");
@@ -832,10 +955,21 @@ def render_page() -> bytes:
           const recordButtonLabel = document.getElementById("record-button-label");
           const filterSummary = document.getElementById("filter-summary");
           const modeOptions = Array.from(document.querySelectorAll(".mode-option"));
+          const selectionStatus = document.getElementById("selection-status");
+          const saveSelectedButton = document.getElementById("save-selected-button");
           let captureImages = [];
+          let totalCaptureCount = 0;
           let selectedCaptureIndex = 0;
+          const selectedPhotoPaths = new Set();
+          const preparedPhotoFiles = new Map();
+          const preparingPhotoFiles = new Map();
+          const failedPhotoPaths = new Set();
           let renderedCaptureKey = "";
           let renderedGalleryKey = "";
+
+          if (isGalleryPage) {
+            document.title = "Gallery · Suv's Tiny Film Camera";
+          }
 
           function formatBytes(value) {
             if (!Number.isFinite(value)) return "";
@@ -875,6 +1009,7 @@ def render_page() -> bytes:
             const icons = {
               delete: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path></svg>',
               download: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="M7 10l5 5 5-5"></path><path d="M12 15V3"></path></svg>',
+              check: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"></path></svg>',
               video: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="13" height="14" rx="2"></rect><path d="m16 10 5-3v10l-5-3Z"></path></svg>',
               play: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 7 8 5-8 5Z"></path></svg>',
             };
@@ -984,29 +1119,188 @@ def render_page() -> bytes:
             renderCaptureInfo(image);
           }
 
+          function photoPath(image) {
+            return image.relative_path || image.filename || "";
+          }
+
+          function selectedPhotos() {
+            return captureImages.filter(
+              (image) => image.media_type === "image" && selectedPhotoPaths.has(photoPath(image)),
+            );
+          }
+
+          function preparePhotoFile(image) {
+            const path = photoPath(image);
+            if (!path) return Promise.reject(new Error("Photo path is missing"));
+            if (preparedPhotoFiles.has(path)) {
+              return Promise.resolve(preparedPhotoFiles.get(path));
+            }
+            if (preparingPhotoFiles.has(path)) return preparingPhotoFiles.get(path);
+
+            failedPhotoPaths.delete(path);
+            const promise = fetch(image.view_url, { cache: "no-store" })
+              .then((response) => {
+                if (!response.ok) throw new Error(`Could not prepare ${image.filename || "photo"}`);
+                return response.blob();
+              })
+              .then((blob) => {
+                const file = new File(
+                  [blob],
+                  image.filename || "tiny-film-photo.jpg",
+                  {
+                    type: blob.type || "image/jpeg",
+                    lastModified: (image.modified_unix || Date.now() / 1000) * 1000,
+                  },
+                );
+                preparedPhotoFiles.set(path, file);
+                return file;
+              })
+              .catch((error) => {
+                failedPhotoPaths.add(path);
+                throw error;
+              })
+              .finally(() => {
+                preparingPhotoFiles.delete(path);
+                renderSelectionToolbar();
+              });
+            preparingPhotoFiles.set(path, promise);
+            renderSelectionToolbar();
+            return promise;
+          }
+
+          function renderSelectionToolbar(message = "") {
+            const count = selectedPhotoPaths.size;
+            const selectedPaths = Array.from(selectedPhotoPaths);
+            const isPreparing = selectedPaths.some((path) => preparingPhotoFiles.has(path));
+            const hasFailure = selectedPaths.some((path) => failedPhotoPaths.has(path));
+            selectionStatus.textContent = message || (isPreparing
+              ? `Preparing ${count} selected photo${count === 1 ? "" : "s"}...`
+              : hasFailure
+                ? "Some photos could not be prepared. Tap retry."
+                : `${count} of ${MAX_SELECTED_PHOTOS} photos selected`);
+            saveSelectedButton.disabled = count === 0 || isPreparing;
+            saveSelectedButton.textContent = hasFailure
+              ? "Retry preparation"
+              : count > 0
+                ? `Save ${count} photo${count === 1 ? "" : "s"}`
+                : "Save to phone";
+          }
+
+          function togglePhotoSelection(image) {
+            if (!image || image.media_type !== "image") return;
+            const path = photoPath(image);
+            if (selectedPhotoPaths.has(path)) {
+              selectedPhotoPaths.delete(path);
+              failedPhotoPaths.delete(path);
+            } else {
+              if (selectedPhotoPaths.size >= MAX_SELECTED_PHOTOS) {
+                renderSelectionToolbar(`You can select up to ${MAX_SELECTED_PHOTOS} photos.`);
+                return;
+              }
+              selectedPhotoPaths.add(path);
+              preparePhotoFile(image).catch(() => {});
+            }
+            renderedGalleryKey = "";
+            renderGallery();
+            renderSelectionToolbar();
+          }
+
+          function downloadPreparedFiles(files) {
+            files.forEach((file) => {
+              const link = document.createElement("a");
+              const objectUrl = URL.createObjectURL(file);
+              link.href = objectUrl;
+              link.download = file.name;
+              link.hidden = true;
+              document.body.appendChild(link);
+              link.click();
+              link.remove();
+              window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
+            });
+          }
+
+          async function saveSelectedPhotos() {
+            const photos = selectedPhotos();
+            if (!photos.length) return;
+            const missingPhotos = photos.filter((image) => !preparedPhotoFiles.has(photoPath(image)));
+            if (missingPhotos.length) {
+              await Promise.allSettled(missingPhotos.map((image) => preparePhotoFile(image)));
+              const stillMissing = photos.some((image) => !preparedPhotoFiles.has(photoPath(image)));
+              renderSelectionToolbar(
+                stillMissing
+                  ? "Some photos could not be prepared. Check the connection and retry."
+                  : "Photos are ready. Tap Save again.",
+              );
+              return;
+            }
+
+            const files = photos.map((image) => preparedPhotoFiles.get(photoPath(image)));
+            const shareData = { files, title: "Tiny Film photos" };
+            let canShareFiles = false;
+            if (typeof navigator.share === "function") {
+              try {
+                canShareFiles = typeof navigator.canShare !== "function" || navigator.canShare(shareData);
+              } catch (error) {
+                canShareFiles = false;
+              }
+            }
+            if (canShareFiles) {
+              selectionStatus.textContent = "Choose Save Images in the share sheet.";
+              try {
+                await navigator.share(shareData);
+                selectionStatus.textContent = `${files.length} photo${files.length === 1 ? "" : "s"} shared.`;
+                return;
+              } catch (error) {
+                if (error && error.name === "AbortError") {
+                  selectionStatus.textContent = "Save cancelled.";
+                  return;
+                }
+              }
+            }
+
+            downloadPreparedFiles(files);
+            selectionStatus.textContent = `Downloaded ${files.length} photo${files.length === 1 ? "" : "s"}.`;
+          }
+
           function renderGallery() {
-            const galleryKey = `${selectedCaptureIndex}:${captureImages
+            const galleryKey = `${isGalleryPage}:${selectedCaptureIndex}:${Array.from(selectedPhotoPaths).join("|")}:${captureImages
               .map((image) => `${image.relative_path}:${image.modified_unix}`)
               .join("|")}`;
             if (renderedGalleryKey === galleryKey) return;
 
             renderedGalleryKey = galleryKey;
             captureBrowser.innerHTML = "";
-            galleryCount.textContent = captureImages.length
-              ? `${captureImages.length} item${captureImages.length === 1 ? "" : "s"}`
+            galleryCount.textContent = totalCaptureCount
+              ? !isGalleryPage && totalCaptureCount > captureImages.length
+                ? `Showing ${captureImages.length} of ${totalCaptureCount} items`
+                : `${totalCaptureCount} item${totalCaptureCount === 1 ? "" : "s"}`
               : "";
             if (!captureImages.length) {
               captureBrowser.innerHTML = '<div class="empty">No captures yet.</div>';
+              renderSelectionToolbar();
               return;
             }
 
             const fragment = document.createDocumentFragment();
             captureImages.forEach((image, index) => {
-              const item = document.createElement("button");
-              item.type = "button";
-              item.className = index === selectedCaptureIndex ? "gallery-item selected" : "gallery-item";
-              item.setAttribute("aria-pressed", index === selectedCaptureIndex ? "true" : "false");
-              item.setAttribute("aria-label", `Preview ${image.filename || "capture"}`);
+              const path = photoPath(image);
+              const photoSelected = selectedPhotoPaths.has(path);
+              const item = document.createElement("div");
+              item.className = [
+                "gallery-item",
+                !isGalleryPage && index === selectedCaptureIndex ? "selected" : "",
+                photoSelected ? "photo-selected" : "",
+              ].filter(Boolean).join(" ");
+
+              const previewButton = document.createElement("button");
+              previewButton.type = "button";
+              previewButton.className = "gallery-preview";
+              previewButton.setAttribute(
+                "aria-label",
+                isGalleryPage && image.media_type === "image"
+                  ? `${photoSelected ? "Deselect" : "Select"} ${image.filename || "photo"}`
+                  : `Preview ${image.filename || "capture"}`,
+              );
 
               const thumb = document.createElement("span");
               thumb.className = "gallery-thumb";
@@ -1031,20 +1325,51 @@ def render_page() -> bytes:
               const caption = document.createElement("span");
               caption.className = "gallery-caption";
               caption.textContent = image.filename || image.relative_path || "Capture";
-              item.append(thumb, caption);
-              item.addEventListener("click", () => {
+              previewButton.append(thumb, caption);
+              previewButton.addEventListener("click", () => {
+                if (isGalleryPage && image.media_type === "image") {
+                  togglePhotoSelection(image);
+                  return;
+                }
+                if (isGalleryPage) {
+                  window.open(image.view_url, "_blank", "noopener");
+                  return;
+                }
                 selectCapture(index);
                 latestFrame.scrollIntoView({ block: "center" });
               });
+              item.appendChild(previewButton);
+
+              if (image.media_type === "image") {
+                const selectButton = document.createElement("button");
+                selectButton.type = "button";
+                selectButton.className = "photo-select-button";
+                selectButton.setAttribute("aria-pressed", photoSelected ? "true" : "false");
+                selectButton.setAttribute(
+                  "aria-label",
+                  `${photoSelected ? "Deselect" : "Select"} ${image.filename || "photo"} to save`,
+                );
+                selectButton.innerHTML = iconSvg("check");
+                selectButton.addEventListener("click", () => togglePhotoSelection(image));
+                item.appendChild(selectButton);
+              }
               fragment.appendChild(item);
             });
             captureBrowser.appendChild(fragment);
+            renderSelectionToolbar();
           }
 
           function renderImages(images, options = {}) {
             const previousSelection = captureImages[selectedCaptureIndex];
             const previousPath = previousSelection && previousSelection.relative_path;
             captureImages = images;
+            totalCaptureCount = Number.isFinite(options.totalImages) ? options.totalImages : images.length;
+            const availablePhotoPaths = new Set(
+              captureImages.filter((image) => image.media_type === "image").map(photoPath),
+            );
+            Array.from(selectedPhotoPaths).forEach((path) => {
+              if (!availablePhotoPaths.has(path)) selectedPhotoPaths.delete(path);
+            });
             if (Number.isFinite(options.selectedIndex)) {
               selectedCaptureIndex = clampCaptureIndex(options.selectedIndex, captureImages);
             } else if (options.selectLatest) {
@@ -1058,7 +1383,7 @@ def render_page() -> bytes:
                 : 0;
             }
 
-            statusElement.textContent = `${images.length} capture${images.length === 1 ? "" : "s"}`;
+            statusElement.textContent = `${totalCaptureCount} capture${totalCaptureCount === 1 ? "" : "s"}`;
             renderSelectedCapture();
             renderGallery();
           }
@@ -1168,10 +1493,11 @@ def render_page() -> bytes:
           }
 
           async function refreshImages(options = {}) {
-            const response = await fetch("/api/images", { cache: "no-store" });
+            const imagesUrl = isGalleryPage ? "/api/images" : `/api/images?limit=${HOME_GALLERY_LIMIT}`;
+            const response = await fetch(imagesUrl, { cache: "no-store" });
             if (!response.ok) throw new Error("Image request failed");
             const data = await response.json();
-            renderImages(data.images || [], options);
+            renderImages(data.images || [], { ...options, totalImages: data.total });
           }
 
           async function deleteCapture(image) {
@@ -1275,31 +1601,41 @@ def render_page() -> bytes:
             }
           }
 
-          captureButton.addEventListener("click", () => {
-            takePhoto();
-          });
-          recordButton.addEventListener("click", () => {
-            recordVideo();
+          saveSelectedButton.addEventListener("click", () => {
+            saveSelectedPhotos();
           });
           refreshImages().catch(() => {
             statusElement.textContent = "Could not load captures.";
           });
-          refreshDetails().catch(() => {});
-          refreshBattery().catch(() => {
-            renderBattery({ ok: false, error: "Could not load battery details.", stale: true });
-          });
-          refreshFilter().catch(() => {
-            renderFilter({ ok: false, error: "Could not load filter switch.", stale: true, using_fallback: true });
-          });
           setInterval(() => refreshImages().catch(() => {}), 5000);
-          setInterval(() => refreshDetails().catch(() => {}), 5000);
-          setInterval(() => refreshBattery().catch(() => {}), 5000);
-          setInterval(() => refreshFilter().catch(() => {}), 1000);
+          if (!isGalleryPage) {
+            captureButton.addEventListener("click", () => {
+              takePhoto();
+            });
+            recordButton.addEventListener("click", () => {
+              recordVideo();
+            });
+            refreshDetails().catch(() => {});
+            refreshBattery().catch(() => {
+              renderBattery({ ok: false, error: "Could not load battery details.", stale: true });
+            });
+            refreshFilter().catch(() => {
+              renderFilter({ ok: false, error: "Could not load filter switch.", stale: true, using_fallback: true });
+            });
+            setInterval(() => refreshDetails().catch(() => {}), 5000);
+            setInterval(() => refreshBattery().catch(() => {}), 5000);
+            setInterval(() => refreshFilter().catch(() => {}), 1000);
+          }
         </script>
       </body>
     </html>
     """
-    return page.encode("utf-8")
+    return (
+        page.replace("__PAGE_NAME__", page_name)
+        .replace("__HOME_GALLERY_LIMIT__", str(HOME_GALLERY_LIMIT))
+        .replace("__MAX_SELECTED_PHOTOS__", str(MAX_SELECTED_PHOTOS))
+        .encode("utf-8")
+    )
 
 
 def attachment_header(filename: str) -> str:
@@ -1457,13 +1793,31 @@ def build_handler(project_root: Path, port: int):
                     return
 
         def do_GET(self) -> None:
-            request_path = self.path.split("?", 1)[0]
+            parsed_request = urlsplit(self.path)
+            request_path = parsed_request.path
             if request_path == "/":
                 self._send_bytes(render_page(), "text/html; charset=utf-8")
                 return
 
+            if request_path == "/gallery":
+                self._send_bytes(
+                    render_page("gallery"), "text/html; charset=utf-8"
+                )
+                return
+
             if request_path == "/api/images":
-                self._send_json({"images": build_capture_image_list(project_root)})
+                image_paths = iter_capture_images(project_root)
+                limit = parse_capture_list_limit(parsed_request.query)
+                visible_paths = image_paths if limit is None else image_paths[:limit]
+                self._send_json(
+                    {
+                        "images": [
+                            build_capture_image(project_root, path)
+                            for path in visible_paths
+                        ],
+                        "total": len(image_paths),
+                    }
+                )
                 return
 
             if request_path == "/api/device-details":
