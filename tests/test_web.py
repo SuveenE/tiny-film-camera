@@ -40,15 +40,14 @@ class RenderPageTest(unittest.TestCase):
         self.assertNotIn('id="filter-active-label"', page)
         self.assertNotIn('id="filter-state"', page)
 
-    def test_home_page_limits_the_gallery_and_supports_batch_photo_saving(self) -> None:
+    def test_home_page_limits_the_gallery_and_links_to_the_full_gallery(self) -> None:
         page = web.render_page().decode("utf-8")
 
         self.assertIn('data-page="home"', page)
         self.assertIn('href="/gallery"', page)
-        self.assertIn('id="save-selected-button"', page)
         self.assertIn("const HOME_GALLERY_LIMIT = 50", page)
-        self.assertIn("const MAX_SELECTED_PHOTOS = 10", page)
-        self.assertIn("navigator.share(shareData)", page)
+        self.assertNotIn('id="save-selected-button"', page)
+        self.assertNotIn("navigator.share", page)
 
     def test_gallery_page_has_a_back_control(self) -> None:
         page = web.render_page("gallery").decode("utf-8")
