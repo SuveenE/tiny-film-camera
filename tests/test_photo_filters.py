@@ -165,11 +165,22 @@ class PhotoFiltersTest(unittest.TestCase):
         self.assertEqual(captured_settings[0].photo_filter, "black_and_white")
         self.assertEqual(item["photo_filter"]["id"], "black_and_white")
 
-    def test_web_page_shows_the_filter_and_switch_position(self) -> None:
+    def test_web_page_shows_color_coded_filter_modes(self) -> None:
         page = web.render_page().decode("utf-8")
 
-        self.assertIn("Photo filter: ${label} (switch: ${position})", page)
-        self.assertIn("fallback; switch: ${position}", page)
+        self.assertIn("Current photo mode", page)
+        self.assertIn('data-filter="black_and_white"', page)
+        self.assertIn('data-filter="normal"', page)
+        self.assertIn('data-filter="cold"', page)
+        self.assertIn("option.dataset.filter === activeFilterId", page)
+
+    def test_web_page_uses_a_stable_preview_and_multi_item_gallery(self) -> None:
+        page = web.render_page().decode("utf-8")
+
+        self.assertIn('<h2>Gallery</h2>', page)
+        self.assertIn('class="capture-browser"', page)
+        self.assertIn("renderedCaptureKey === captureKey", page)
+        self.assertIn('thumbnail.loading = "lazy"', page)
 
 
 if __name__ == "__main__":
