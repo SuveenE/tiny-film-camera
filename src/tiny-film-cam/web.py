@@ -793,7 +793,7 @@ def render_page() -> bytes:
               <div class="mode-copy">
                 <span class="eyebrow">Current photo mode</span>
                 <strong id="filter-active-label">Checking...</strong>
-                <span class="mode-state" id="filter-state">Reading the physical switch</span>
+                <span class="mode-state" id="filter-state">Checking mode</span>
               </div>
               <div class="mode-options" role="list" aria-label="Available photo modes">
                 <div class="mode-option" data-filter="black_and_white" role="listitem">
@@ -1186,11 +1186,11 @@ def render_page() -> bytes:
             filterActiveLabel.textContent = label;
             filterState.textContent = warning
               ? `Fallback mode · switch ${position}`
-              : `Physical switch · ${position}`;
+              : `Mode · ${position}`;
             filterSummary.className = warning ? "filter-summary warning" : "filter-summary";
             filterSummary.title = warning
               ? details.error || "Filter switch unavailable; using Normal"
-              : `Physical switch: ${details.position}`;
+              : `Current mode: ${label}`;
             modeOptions.forEach((option) => {
               const active = option.dataset.filter === activeFilterId;
               option.classList.toggle("active", active);
