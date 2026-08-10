@@ -66,6 +66,10 @@ class ShutterDaemonTest(unittest.TestCase):
 
         self.assertEqual(defaults.photo_pin, 5)
         self.assertEqual(defaults.video_pin, 17)
+        self.assertEqual(
+            defaults.buzzer_ready_delay,
+            shutter_daemon.DEFAULT_BUZZER_READY_DELAY_SECONDS,
+        )
 
         with (
             patch.dict(
@@ -74,6 +78,7 @@ class ShutterDaemonTest(unittest.TestCase):
                     "TINY_FILM_BUTTON_PIN": "5",
                     "TINY_FILM_PHOTO_BUTTON_PIN": "6",
                     "TINY_FILM_VIDEO_BUTTON_PIN": "24",
+                    "TINY_FILM_BUZZER_READY_DELAY_SECONDS": "8.5",
                 },
                 clear=True,
             ),
@@ -83,6 +88,7 @@ class ShutterDaemonTest(unittest.TestCase):
 
         self.assertEqual(configured.photo_pin, 6)
         self.assertEqual(configured.video_pin, 24)
+        self.assertEqual(configured.buzzer_ready_delay, 8.5)
 
     def test_legacy_button_pin_still_configures_photo_button(self) -> None:
         with (
@@ -93,6 +99,92 @@ class ShutterDaemonTest(unittest.TestCase):
 
         self.assertEqual(args.photo_pin, 6)
         self.assertEqual(args.video_pin, 17)
+
+    def test_ready_cue_waits_for_boot_and_settle_delay(self) -> None:
+        buzzer = MagicMock()
+        stop_event = MagicMock()
+        stop_event.wait.return_value = False
+
+        with patch.object(
+            shutter_daemon,
+            "wait_for_system_startup",
+            return_value=True,
+        ) as wait_for_system_startup:
+            shutter_daemon.play_ready_when_settled(
+                buzzer=buzzer,
+                stop_event=stop_event,
+                delay_seconds=5.0,
+            )
+
+        wait_for_system_startup.assert_called_once_with(stop_event)
+        stop_event.wait.assert_called_once_with(5.0)
+        buzzer.ready.assert_called_once_with()
+
+    def test_ready_cue_is_cancelled_during_shutdown(self) -> None:
+        buzzer = MagicMock()
+        stop_event = MagicMock()
+        stop_event.wait.return_value = True
+
+        with patch.object(
+            shutter_daemon,
+            "wait_for_system_startup",
+            return_value=True,
+        ):
+            shutter_daemon.play_ready_when_settled(
+                buzzer=buzzer,
+                stop_event=stop_event,
+                delay_seconds=5.0,
+            )
+
+        buzzer.ready.assert_not_called()
+
+    def test_systemd_wait_returns_after_boot_finishes(self) -> None:
+        stop_event = MagicMock()
+        stop_event.wait.return_value = False
+        stop_event.is_set.return_value = False
+        process = MagicMock()
+        process.poll.side_effect = (None, 0)
+        process.communicate.return_value = ("running\n", "")
+
+        with (
+            patch.object(shutter_daemon, "SYSTEMD_RUNTIME_PATH") as runtime_path,
+            patch.object(
+                shutter_daemon.subprocess,
+                "Popen",
+                return_value=process,
+            ) as popen,
+        ):
+            runtime_path.is_dir.return_value = True
+            completed = shutter_daemon.wait_for_system_startup(stop_event)
+
+        self.assertTrue(completed)
+        popen.assert_called_once_with(
+            ("systemctl", "is-system-running", "--wait"),
+            stdout=shutter_daemon.subprocess.PIPE,
+            stderr=shutter_daemon.subprocess.PIPE,
+            text=True,
+        )
+
+    def test_systemd_wait_stops_during_shutdown(self) -> None:
+        stop_event = MagicMock()
+        stop_event.is_set.return_value = False
+        stop_event.wait.return_value = True
+        process = MagicMock()
+        process.poll.return_value = None
+
+        with (
+            patch.object(shutter_daemon, "SYSTEMD_RUNTIME_PATH") as runtime_path,
+            patch.object(
+                shutter_daemon.subprocess,
+                "Popen",
+                return_value=process,
+            ),
+        ):
+            runtime_path.is_dir.return_value = True
+            completed = shutter_daemon.wait_for_system_startup(stop_event)
+
+        self.assertFalse(completed)
+        process.terminate.assert_called_once_with()
 
     def test_each_button_registers_its_own_capture_action(self) -> None:
         fake_gpiozero = types.ModuleType("gpiozero")

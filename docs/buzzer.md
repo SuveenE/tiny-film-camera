@@ -5,7 +5,7 @@ The shutter daemon (`src/tiny-film-cam/shutter_daemon.py`) drives these sounds:
 
 | Sound | When |
 |-------|------|
-| **minimal** | Shutter daemon initialized successfully (default ready cue) |
+| **minimal** | System startup finished and the settle delay elapsed (default ready cue) |
 | **click** | Frame captured (default; shorter/softer tick than minimal) |
 | **gentle** | Frame-captured option with a descending two-note cue |
 | **shutter** | Frame-captured option with two dry mechanical-style taps |
@@ -83,12 +83,15 @@ python3 src/tiny-film-cam/buzzer.py --sound gentle --volume 0.3
 ## Using it with the shutter
 
 No `.env` entries are required for the default wiring (GPIO 18, passive).
-With the defaults, `minimal` at volume `0.90` plays once when the shutter
-daemon is ready. A softer `click` at volume `0.30` plays immediately after the
-camera returns a frame, before rotation, JPEG encoding, and disk saving.
+With the defaults, the daemon waits for systemd to finish booting, allows five
+more seconds for startup disk activity to settle, and then plays `minimal` once
+at volume `0.90`. When the daemon is run outside systemd, only the five-second
+settle delay applies. A softer `click` at volume `0.30` plays immediately after
+the camera returns a frame, before rotation, JPEG encoding, and disk saving.
 If an existing `.env` overrides older buzzer defaults, set:
 
 ```bash
+TINY_FILM_BUZZER_READY_DELAY_SECONDS=5
 TINY_FILM_BUZZER_PHOTO_SOUND=click
 TINY_FILM_BUZZER_VOLUME=0.90
 TINY_FILM_BUZZER_PHOTO_VOLUME=0.30
@@ -122,6 +125,7 @@ python3 src/tiny-film-cam/shutter_daemon.py --no-buzzer
 |---------|---------|----------|---------|
 | Buzzer pin | `TINY_FILM_BUZZER_PIN` | `--buzzer-pin` / `--no-buzzer` | `18` (blank = disabled) |
 | Buzzer type | `TINY_FILM_BUZZER_ACTIVE` | `--buzzer-active` / `--buzzer-passive` | passive |
+| Ready settle delay | `TINY_FILM_BUZZER_READY_DELAY_SECONDS` | `--buzzer-ready-delay` | `5` seconds after boot finishes |
 | Photo sound | `TINY_FILM_BUZZER_PHOTO_SOUND` | `--buzzer-photo-sound` | `click` |
 | Ready/video volume | `TINY_FILM_BUZZER_VOLUME` | `--buzzer-volume` | `0.90` |
 | Photo volume | `TINY_FILM_BUZZER_PHOTO_VOLUME` | `--buzzer-photo-volume` | `0.30` |
