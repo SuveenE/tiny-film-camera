@@ -378,6 +378,17 @@ def _available_camera_count(Picamera2) -> int | None:
     return len(cameras)
 
 
+def camera_is_available() -> bool:
+    """Return whether Picamera2 can currently see at least one camera."""
+    try:
+        from picamera2 import Picamera2
+    except ImportError:
+        return False
+
+    camera_count = _available_camera_count(Picamera2)
+    return camera_count is not None and camera_count > 0
+
+
 def _open_camera(Picamera2):
     camera_count = _available_camera_count(Picamera2)
     if camera_count == 0:

@@ -5,7 +5,7 @@ The shutter daemon (`src/tiny-film-cam/shutter_daemon.py`) drives these sounds:
 
 | Sound | When |
 |-------|------|
-| **minimal** | System startup finished and the settle delay elapsed (default ready cue) |
+| **minimal** | Startup settled and Picamera2 detected the camera (default ready cue) |
 | **click** | Frame captured (default; shorter/softer tick than minimal) |
 | **gentle** | Frame-captured option with a descending two-note cue |
 | **shutter** | Frame-captured option with two dry mechanical-style taps |
@@ -84,7 +84,8 @@ python3 src/tiny-film-cam/buzzer.py --sound gentle --volume 0.3
 
 No `.env` entries are required for the default wiring (GPIO 18, passive).
 With the defaults, the daemon waits for systemd to finish booting, allows five
-more seconds for startup disk activity to settle, and then plays `minimal` once
+more seconds for startup disk activity to settle, waits until Picamera2 detects
+the camera, and then plays `minimal` once
 at volume `0.90`. When the daemon is run outside systemd, only the five-second
 settle delay applies. A softer `click` at volume `0.30` plays immediately after
 the camera returns a frame, before rotation, JPEG encoding, and disk saving.

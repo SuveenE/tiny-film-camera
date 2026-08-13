@@ -74,8 +74,9 @@ For optional audible feedback from a passive buzzer module, see
 
 ## Notes
 
-- Pressing either button while a photo or video is already in progress is
-  ignored (no double-fires or overlapping access to the camera).
+- Button presses are queued and handled in order. A press received while a
+  photo or video is in progress runs as soon as the camera is free, without
+  overlapping camera access.
 - Holding a button does not change its action or repeatedly trigger it: the
   photo button takes one photo and the video button records one fixed-length
   clip per press.
@@ -83,3 +84,49 @@ For optional audible feedback from a passive buzzer module, see
   they appear in the gallery immediately.
 - If using pull-down wiring instead, connect the switch between GPIO and 3V3
   and pass `--pull-down`.
+
+## Readiness and repeated-photo test
+
+The startup ready cue now plays only after system startup has settled and
+Picamera2 detects a camera. Wait for that cue before taking the first photo. The
+same moment appears in the service log as `Tiny Film is ready for photos`.
+
+First test repeated camera capture without involving the physical switch. Stop
+the two camera-using services, load the deployed settings, and run five
+simulated presses exactly five seconds apart:
+
+```bash
+sudo systemctl stop tiny-film-shutter.service tiny-film-web.service
+set -a
+source .env
+set +a
+python3 src/tiny-film-cam/shutter_diagnostic.py --count 5 --interval 5
+sudo systemctl start tiny-film-web.service tiny-film-shutter.service
+```
+
+A successful run ends with `Diagnostic PASSED: 5/5 requests completed`. It also
+prints the time from each request to its sensor frame and saved JPEG. A failed
+run exits non-zero and prints the exception for the failed request.
+
+Then test the physical button while following the service log:
+
+```bash
+sudo journalctl -u tiny-film-shutter.service -f -o cat
+```
+
+After the ready cue, press the photo button five times with at least five
+seconds between presses. Each press must produce one uninterrupted sequence of
+messages with the same request number:
+
+```text
+Photo request #1 queued
+Photo request #1 started ... after button press
+Saved 1 photo(s): ...
+Photo request #1 finished in ...
+```
+
+If a press has no `queued` message, investigate the button wiring or GPIO
+input. If it queues and then logs `Capture failed`, investigate the camera or
+capture pipeline. A large `started ... after button press` value means an
+earlier photo or video was still using the camera; the request remains queued
+instead of being discarded.

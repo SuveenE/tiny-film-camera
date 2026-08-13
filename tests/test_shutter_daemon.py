@@ -4,6 +4,7 @@ import importlib.util
 import os
 from pathlib import Path
 import sys
+import threading
 import types
 import unittest
 from unittest.mock import MagicMock, patch
@@ -51,6 +52,24 @@ class StopImmediatelyEvent:
 
     def wait(self, timeout: float) -> bool:
         return True
+
+
+class ImmediateCaptureWorker:
+    def __init__(self, *, take_photo, record_clip) -> None:
+        self.take_photo = take_photo
+        self.record_clip = record_clip
+
+    def start(self) -> None:
+        return None
+
+    def submit_photo(self) -> None:
+        self.take_photo()
+
+    def submit_video(self) -> None:
+        self.record_clip()
+
+    def stop(self) -> None:
+        return None
 
 
 class ShutterDaemonTest(unittest.TestCase):
@@ -105,11 +124,18 @@ class ShutterDaemonTest(unittest.TestCase):
         stop_event = MagicMock()
         stop_event.wait.return_value = False
 
-        with patch.object(
-            shutter_daemon,
-            "wait_for_system_startup",
-            return_value=True,
-        ) as wait_for_system_startup:
+        with (
+            patch.object(
+                shutter_daemon,
+                "wait_for_system_startup",
+                return_value=True,
+            ) as wait_for_system_startup,
+            patch.object(
+                shutter_daemon,
+                "wait_for_camera_ready",
+                return_value=True,
+            ) as wait_for_camera_ready,
+        ):
             shutter_daemon.play_ready_when_settled(
                 buzzer=buzzer,
                 stop_event=stop_event,
@@ -118,7 +144,61 @@ class ShutterDaemonTest(unittest.TestCase):
 
         wait_for_system_startup.assert_called_once_with(stop_event)
         stop_event.wait.assert_called_once_with(5.0)
+        wait_for_camera_ready.assert_called_once_with(stop_event)
         buzzer.ready.assert_called_once_with()
+
+    def test_camera_ready_wait_retries_until_camera_is_detected(self) -> None:
+        stop_event = MagicMock()
+        stop_event.is_set.return_value = False
+        stop_event.wait.return_value = False
+
+        with patch.object(
+            shutter_daemon,
+            "camera_is_available",
+            side_effect=(False, True),
+        ) as camera_is_available:
+            ready = shutter_daemon.wait_for_camera_ready(
+                stop_event,
+                poll_seconds=1.0,
+            )
+
+        self.assertTrue(ready)
+        self.assertEqual(camera_is_available.call_count, 2)
+        stop_event.wait.assert_called_once_with(1.0)
+
+    def test_photo_press_is_queued_while_previous_capture_is_running(self) -> None:
+        first_started = threading.Event()
+        release_first = threading.Event()
+        second_finished = threading.Event()
+        capture_count = 0
+
+        def take_photo() -> None:
+            nonlocal capture_count
+            capture_count += 1
+            if capture_count == 1:
+                first_started.set()
+                self.assertTrue(release_first.wait(timeout=1.0))
+            else:
+                second_finished.set()
+
+        worker = shutter_daemon.CaptureRequestWorker(
+            take_photo=take_photo,
+            record_clip=lambda: None,
+        )
+        worker.start()
+        try:
+            first_request = worker.submit_photo()
+            self.assertTrue(first_started.wait(timeout=1.0))
+            second_request = worker.submit_photo()
+            release_first.set()
+            self.assertTrue(second_finished.wait(timeout=1.0))
+            worker.wait_until_idle()
+        finally:
+            release_first.set()
+            worker.stop()
+
+        self.assertEqual((first_request, second_request), (1, 2))
+        self.assertEqual(capture_count, 2)
 
     def test_ready_cue_is_cancelled_during_shutdown(self) -> None:
         buzzer = MagicMock()
@@ -215,6 +295,12 @@ class ShutterDaemonTest(unittest.TestCase):
                 "Event",
                 return_value=StopImmediatelyEvent(),
             ),
+            patch.object(
+                shutter_daemon,
+                "CaptureRequestWorker",
+                ImmediateCaptureWorker,
+            ),
+            patch.object(shutter_daemon.threading, "Thread"),
             patch.object(shutter_daemon.signal, "signal"),
         ):
             shutter_daemon.main()
