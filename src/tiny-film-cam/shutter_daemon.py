@@ -1,12 +1,16 @@
 from __future__ import annotations
 
 import argparse
+from dataclasses import dataclass
 import logging
 import os
+import queue
 import signal
 import subprocess
 import threading
+import time
 from pathlib import Path
+from typing import Callable, Literal
 
 from buzzer import (
     DEFAULT_PHOTO_SOUND,
@@ -19,6 +23,7 @@ from camera import (
     AWB_MODES,
     CaptureSettings,
     VideoSettings,
+    camera_is_available,
     capture_photos,
     capture_settings_from_env,
     record_video,
@@ -30,7 +35,126 @@ from photo_filters import selected_photo_filter_from_cache
 
 LOGGER = logging.getLogger("tiny_film.shutter")
 DEFAULT_BUZZER_READY_DELAY_SECONDS = 5.0
+DEFAULT_CAMERA_READY_POLL_SECONDS = 1.0
 SYSTEMD_RUNTIME_PATH = Path("/run/systemd/system")
+
+
+CaptureKind = Literal["photo", "video"]
+
+
+@dataclass(frozen=True)
+class CaptureRequest:
+    request_id: int
+    kind: CaptureKind
+    requested_at: float
+
+
+class CaptureRequestWorker:
+    """Run every accepted button request in order on one camera worker."""
+
+    _STOP = object()
+
+    def __init__(
+        self,
+        *,
+        take_photo: Callable[[], None],
+        record_clip: Callable[[], None],
+        clock: Callable[[], float] = time.monotonic,
+    ) -> None:
+        self._handlers = {"photo": take_photo, "video": record_clip}
+        self._clock = clock
+        self._queue: queue.Queue[CaptureRequest | object] = queue.Queue()
+        self._state_lock = threading.Lock()
+        self._next_request_id = 1
+        self._accepting = True
+        self._started = False
+        self._thread = threading.Thread(
+            target=self._run,
+            name="tiny-film-capture-worker",
+            daemon=True,
+        )
+
+    def start(self) -> None:
+        with self._state_lock:
+            if self._started:
+                return
+            self._started = True
+            self._thread.start()
+
+    def submit_photo(self) -> int | None:
+        return self._submit("photo")
+
+    def submit_video(self) -> int | None:
+        return self._submit("video")
+
+    def _submit(self, kind: CaptureKind) -> int | None:
+        with self._state_lock:
+            if not self._accepting:
+                LOGGER.info("Ignored %s button press during shutdown", kind)
+                return None
+            request = CaptureRequest(
+                request_id=self._next_request_id,
+                kind=kind,
+                requested_at=self._clock(),
+            )
+            self._next_request_id += 1
+            self._queue.put(request)
+
+        LOGGER.info(
+            "%s request #%s queued (%s request(s) waiting)",
+            kind.capitalize(),
+            request.request_id,
+            self._queue.qsize(),
+        )
+        return request.request_id
+
+    def wait_until_idle(self) -> None:
+        self._queue.join()
+
+    def stop(self) -> None:
+        with self._state_lock:
+            if not self._accepting:
+                return
+            self._accepting = False
+            self._queue.put(self._STOP)
+            started = self._started
+
+        if started:
+            self._thread.join()
+
+    def _run(self) -> None:
+        while True:
+            request = self._queue.get()
+            try:
+                if request is self._STOP:
+                    return
+                if not isinstance(request, CaptureRequest):
+                    continue
+
+                started_at = self._clock()
+                LOGGER.info(
+                    "%s request #%s started %.3fs after button press",
+                    request.kind.capitalize(),
+                    request.request_id,
+                    max(0.0, started_at - request.requested_at),
+                )
+                try:
+                    self._handlers[request.kind]()
+                except Exception:
+                    LOGGER.exception(
+                        "Unhandled error in %s request #%s",
+                        request.kind,
+                        request.request_id,
+                    )
+                finally:
+                    LOGGER.info(
+                        "%s request #%s finished in %.3fs",
+                        request.kind.capitalize(),
+                        request.request_id,
+                        max(0.0, self._clock() - started_at),
+                    )
+            finally:
+                self._queue.task_done()
 
 
 def env_bool(name: str, default: bool) -> bool:
@@ -137,6 +261,26 @@ def wait_for_system_startup(stop_event: threading.Event) -> bool:
     return not stop_event.is_set()
 
 
+def wait_for_camera_ready(
+    stop_event: threading.Event,
+    poll_seconds: float = DEFAULT_CAMERA_READY_POLL_SECONDS,
+) -> bool:
+    """Wait until Picamera2 reports a camera or shutdown is requested."""
+    first_check = True
+    while not stop_event.is_set():
+        if camera_is_available():
+            LOGGER.info("Camera detected and ready for shutter requests")
+            return True
+        if first_check:
+            LOGGER.warning(
+                "Camera is not available yet; delaying the ready cue and retrying"
+            )
+            first_check = False
+        if stop_event.wait(max(0.05, poll_seconds)):
+            return False
+    return False
+
+
 def play_ready_when_settled(
     *,
     buzzer: ShutterBuzzer,
@@ -156,8 +300,12 @@ def play_ready_when_settled(
     if stop_event.wait(delay_seconds):
         return
 
-    LOGGER.info("Startup settled; playing the ready cue")
-    buzzer.ready()
+    if not wait_for_camera_ready(stop_event):
+        return
+
+    LOGGER.info("Tiny Film is ready for photos")
+    if buzzer.enabled:
+        buzzer.ready()
 
 
 def parse_args() -> argparse.Namespace:
@@ -351,7 +499,6 @@ def main() -> None:
     args = parse_args()
     project_root = args.project_root.expanduser().resolve()
     output_dir = resolve_project_path(project_root, args.output_dir)
-    capture_lock = threading.Lock()
     stop_event = threading.Event()
     ready_thread: threading.Thread | None = None
     buzzer_pin = None if args.no_buzzer else args.buzzer_pin
@@ -376,13 +523,9 @@ def main() -> None:
         stop_event.set()
 
     def take_photo() -> None:
-        if not capture_lock.acquire(blocking=False):
-            LOGGER.info("Ignored button press because a capture is already running")
-            return
-
         try:
             photo_filter = selected_photo_filter_from_cache(project_root)
-            LOGGER.info("Button pressed; capturing photo with %s filter", photo_filter)
+            LOGGER.info("Capturing photo with %s filter", photo_filter)
             settings = CaptureSettings(
                 output_dir=output_dir,
                 width=args.width,
@@ -410,14 +553,8 @@ def main() -> None:
         except Exception:
             LOGGER.exception("Capture failed")
             buzzer.error()
-        finally:
-            capture_lock.release()
 
     def record_clip() -> None:
-        if not capture_lock.acquire(blocking=False):
-            LOGGER.info("Ignored video button because a capture is already running")
-            return
-
         try:
             LOGGER.info(
                 "Video button pressed; recording %.1fs video", args.video_duration
@@ -447,8 +584,12 @@ def main() -> None:
         except Exception:
             LOGGER.exception("Recording failed")
             buzzer.error()
-        finally:
-            capture_lock.release()
+
+    capture_worker = CaptureRequestWorker(
+        take_photo=take_photo,
+        record_clip=record_clip,
+    )
+    capture_worker.start()
 
     signal.signal(signal.SIGINT, request_stop)
     signal.signal(signal.SIGTERM, request_stop)
@@ -463,8 +604,8 @@ def main() -> None:
         pull_up=args.pull_up,
         bounce_time=args.bounce_time if args.bounce_time > 0 else None,
     )
-    photo_button.when_pressed = take_photo
-    video_button.when_pressed = record_clip
+    photo_button.when_pressed = capture_worker.submit_photo
+    video_button.when_pressed = capture_worker.submit_video
 
     wiring = (
         "GPIO-to-GND with pull-up" if args.pull_up else "GPIO-to-3V3 with pull-down"
@@ -490,29 +631,31 @@ def main() -> None:
             args.buzzer_photo_sound,
             args.buzzer_photo_volume,
         )
-        ready_thread = threading.Thread(
-            target=play_ready_when_settled,
-            kwargs={
-                "buzzer": buzzer,
-                "stop_event": stop_event,
-                "delay_seconds": args.buzzer_ready_delay,
-            },
-            name="tiny-film-ready-cue",
-            daemon=True,
-        )
-        ready_thread.start()
     elif args.no_buzzer or buzzer_pin is None:
         LOGGER.info("Buzzer feedback disabled")
+
+    ready_thread = threading.Thread(
+        target=play_ready_when_settled,
+        kwargs={
+            "buzzer": buzzer,
+            "stop_event": stop_event,
+            "delay_seconds": args.buzzer_ready_delay,
+        },
+        name="tiny-film-ready-cue",
+        daemon=True,
+    )
+    ready_thread.start()
 
     try:
         while not stop_event.wait(1.0):
             pass
     finally:
         stop_event.set()
-        if ready_thread is not None:
-            ready_thread.join(timeout=2.0)
         photo_button.close()
         video_button.close()
+        capture_worker.stop()
+        if ready_thread is not None:
+            ready_thread.join(timeout=2.0)
         buzzer.close()
 
 
