@@ -45,3 +45,6 @@ If SSH is refused, make sure the SSH service is enabled and running on the Pi
 sudo systemctl enable --now ssh
 ```
 
+If the Pi has no network connection and no mini-HDMI display is available, use
+the [USB serial Wi-Fi recovery guide](usb-serial-wifi-recovery.md) to log in and
+repair its NetworkManager profile without reflashing the SD card.
