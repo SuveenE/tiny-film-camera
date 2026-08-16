@@ -18,6 +18,30 @@ directly from your phone.
   </sub>
 </p>
 
+## Sample photos
+
+An original photo and a zoomed-in view captured with Tiny Film Camera. Click
+either image to view it at full resolution.
+
+<table>
+  <tr>
+    <td align="center" width="68%">
+      <a href="assets/photo-samples/train-original-4608x2592.jpg">
+        <img src="assets/photo-samples/train-original-4608x2592.jpg" alt="Original high-resolution photo of a train passing city buildings" width="620" />
+      </a>
+    </td>
+    <td align="center" width="32%">
+      <a href="assets/photo-samples/train-zoomed-1170x2080.jpg">
+        <img src="assets/photo-samples/train-zoomed-1170x2080.jpg" alt="Zoomed-in high-resolution view of the train and city buildings" width="292" />
+      </a>
+    </td>
+  </tr>
+  <tr>
+    <td align="center"><strong>Original</strong><br /><sub>4608 × 2592 pixels</sub></td>
+    <td align="center"><strong>Zoomed in</strong><br /><sub>1170 × 2080 pixels</sub></td>
+  </tr>
+</table>
+
 ## What it does
 
 - Use dedicated physical buttons for photos and short video clips.

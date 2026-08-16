@@ -6,6 +6,15 @@ Original project files under `assets/` (C-bracket spacers and generators) are
 covered by the repository [MIT License](../LICENSE). Third-party Printables
 models keep their upstream licenses, listed below.
 
+## Photo samples
+
+Full-resolution camera samples, preserved without recompression:
+
+- `photo-samples/train-original-4608x2592.jpg` — original landscape photo,
+  4608 × 2592 pixels
+- `photo-samples/train-zoomed-1170x2080.jpg` — zoomed-in portrait view,
+  1170 × 2080 pixels
+
 ## v1 assets
 
 Current enclosure parts, reference renders, and a compressed CAD demo:
