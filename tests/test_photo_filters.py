@@ -48,6 +48,45 @@ class PhotoFiltersTest(unittest.TestCase):
         self.assertLess(red, green)
         self.assertGreater(blue, green)
 
+    def test_vivid_50_increases_colour_and_tonal_separation(self) -> None:
+        image = Image.new("RGB", (2, 1))
+        image.putpixel((0, 0), (75, 60, 50))
+        image.putpixel((1, 0), (180, 155, 130))
+
+        filtered = photo_filters.apply_photo_filter(image, "vivid_50")
+
+        original_saturation = [
+            image.convert("HSV").getpixel((x, 0))[1] for x in range(2)
+        ]
+        filtered_saturation = [
+            filtered.convert("HSV").getpixel((x, 0))[1] for x in range(2)
+        ]
+        original_luminance_range = (
+            image.convert("L").getpixel((1, 0))
+            - image.convert("L").getpixel((0, 0))
+        )
+        filtered_luminance_range = (
+            filtered.convert("L").getpixel((1, 0))
+            - filtered.convert("L").getpixel((0, 0))
+        )
+
+        self.assertTrue(
+            all(
+                filtered_value > original_value
+                for filtered_value, original_value in zip(
+                    filtered_saturation, original_saturation, strict=True
+                )
+            )
+        )
+        self.assertGreater(filtered_luminance_range, original_luminance_range)
+
+    def test_vivid_50_metadata_identifies_approximation_and_intensity(self) -> None:
+        details = photo_filters.photo_filter_details("vivid_50")
+
+        self.assertEqual(details["label"], "Vivid 50")
+        self.assertEqual(details["intensity_percent"], 50)
+        self.assertTrue(details["approximation"])
+
     def test_fresh_switch_selection_is_used(self) -> None:
         with TemporaryDirectory() as tmpdir:
             project_root = Path(tmpdir)
@@ -172,6 +211,7 @@ class PhotoFiltersTest(unittest.TestCase):
         self.assertIn('data-filter="black_and_white"', page)
         self.assertIn('data-filter="normal"', page)
         self.assertIn('data-filter="cold"', page)
+        self.assertIn('data-filter="vivid_50"', page)
         self.assertIn("option.dataset.filter === activeFilterId", page)
 
     def test_web_page_uses_a_stable_preview_and_multi_item_gallery(self) -> None:

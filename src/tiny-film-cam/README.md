@@ -18,7 +18,14 @@ Choose one of the three JPEG looks directly with:
 python3 src/tiny-film-cam/capture.py --photo-filter black_and_white
 python3 src/tiny-film-cam/capture.py --photo-filter normal
 python3 src/tiny-film-cam/capture.py --photo-filter cold
+python3 src/tiny-film-cam/capture.py --photo-filter vivid_50
 ```
+
+`vivid_50` is a versioned approximation of the iPhone Photos **Vivid** filter
+at 50% intensity. It applies an S-curve, selective vibrance, and saturation,
+then blends the result 50/50 with the captured pixels. Apple does not publish
+the original transform, so it is intentionally labelled as an approximation in
+the photo metadata.
 
 If `--output` is omitted, the script writes a timestamped JPEG into
 `data/captures/YYYY-MM-DD/`.
