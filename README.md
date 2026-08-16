@@ -1,8 +1,11 @@
 # Tiny Film Camera
 
-An open-source digital camera built around the Raspberry Pi Zero 2 W and Camera
-Module 3. Tiny Film Camera pairs a physical shutter with film-inspired JPEG looks and a
-phone-friendly local gallery.
+Tiny Film Camera is an open-source digital camera built around the Raspberry Pi
+Zero 2 W and Camera Module 3. It can capture photos and record short video clips
+using dedicated photo and video buttons, with three selectable looks—warm, cold,
+and black & white—controlled by a physical slider switch. A buzzer provides
+feedback for startup and photo capture, and a local photo gallery can be accessed
+directly from your phone.
 
 <p align="center">
   <img src="assets/guides/readme-showcase.png" alt="Tiny Film Camera assembled, its components, and the v1 CAD design" width="920" />
@@ -18,7 +21,7 @@ phone-friendly local gallery.
 ## What it does
 
 - Use dedicated physical buttons for photos and short video clips.
-- Choose Black & white, Normal, or Cold with a three-position hardware switch.
+- Choose Warm, Cold, or Black & white with a three-position hardware switch.
 - Capture, browse, download, and delete photos from a phone on the same Wi-Fi.
 - Monitor the Waveshare UPS battery from the web interface.
 - Apply configurable exposure, white-balance, focus, rotation, and JPEG settings.
