@@ -2,8 +2,8 @@
 
 Tiny Film Camera is an open-source digital camera built around the Raspberry Pi
 Zero 2 W and Camera Module 3. It can capture photos and record short video clips
-using dedicated photo and video buttons, with three selectable looks—warm, cold,
-and black & white—controlled by a physical slider switch. A buzzer provides
+using dedicated photo and video buttons, with three selectable looks (warm, cold,
+and black & white) controlled by a physical slider switch. A buzzer provides
 feedback for startup and photo capture, and a local photo gallery can be accessed
 directly from your phone.
 
