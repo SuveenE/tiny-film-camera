@@ -15,6 +15,12 @@ Full-resolution camera samples, preserved without recompression:
 - `photo-samples/train-zoomed-1170x2080.jpg` — zoomed-in portrait view,
   1170 × 2080 pixels
 
+Regenerate the README collage from the original showcase and portrait sample:
+
+```bash
+python3 assets/guides/generate-readme-showcase.py
+```
+
 ## v1 assets
 
 Current enclosure parts, reference renders, and a compressed CAD demo:
