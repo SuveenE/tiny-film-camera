@@ -18,11 +18,10 @@ directly from your phone.
   </sub>
 </p>
 
-## High-resolution photo sample
+## Sample photos
 
-The original landscape still is **4608 × 2592 pixels**. The zoomed-in view
-remains **1170 × 2080 pixels**, making fine detail easy to inspect. Click either
-image to open it at its full resolution.
+An original photo and a zoomed-in view captured with Tiny Film Camera. Click
+either image to view it at full resolution.
 
 <table>
   <tr>
