@@ -11,9 +11,9 @@ models keep their upstream licenses, listed below.
 Full-resolution camera samples, preserved without recompression:
 
 - `photo-samples/train-original-4608x2592.jpg` — original landscape photo,
-  4608 × 2592 pixels (11.9 MP)
+  4608 × 2592 pixels
 - `photo-samples/train-zoomed-1170x2080.jpg` — zoomed-in portrait view,
-  1170 × 2080 pixels (2.4 MP)
+  1170 × 2080 pixels
 
 ## v1 assets
 

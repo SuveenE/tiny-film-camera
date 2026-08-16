@@ -20,25 +20,28 @@ directly from your phone.
 
 ## High-resolution photo sample
 
-The original landscape still is **4608 × 2592 pixels (11.9 MP)**. The zoomed-in
-view remains **1170 × 2080 pixels (2.4 MP)**, making fine detail easy to inspect.
-Click either image to open it at its full resolution.
+The original landscape still is **4608 × 2592 pixels**. The zoomed-in view
+remains **1170 × 2080 pixels**, making fine detail easy to inspect. Click either
+image to open it at its full resolution.
 
-<p align="center">
-  <a href="assets/photo-samples/train-original-4608x2592.jpg">
-    <img src="assets/photo-samples/train-original-4608x2592.jpg" alt="Original high-resolution photo of a train passing city buildings" width="920" />
-  </a>
-  <br />
-  <sub><strong>Original</strong> · 4608 × 2592 pixels · 11.9 MP</sub>
-</p>
-
-<p align="center">
-  <a href="assets/photo-samples/train-zoomed-1170x2080.jpg">
-    <img src="assets/photo-samples/train-zoomed-1170x2080.jpg" alt="Zoomed-in high-resolution view of the train and city buildings" width="520" />
-  </a>
-  <br />
-  <sub><strong>Zoomed in</strong> · 1170 × 2080 pixels · 2.4 MP</sub>
-</p>
+<table>
+  <tr>
+    <td align="center" width="68%">
+      <a href="assets/photo-samples/train-original-4608x2592.jpg">
+        <img src="assets/photo-samples/train-original-4608x2592.jpg" alt="Original high-resolution photo of a train passing city buildings" width="620" />
+      </a>
+    </td>
+    <td align="center" width="32%">
+      <a href="assets/photo-samples/train-zoomed-1170x2080.jpg">
+        <img src="assets/photo-samples/train-zoomed-1170x2080.jpg" alt="Zoomed-in high-resolution view of the train and city buildings" width="292" />
+      </a>
+    </td>
+  </tr>
+  <tr>
+    <td align="center"><strong>Original</strong><br /><sub>4608 × 2592 pixels</sub></td>
+    <td align="center"><strong>Zoomed in</strong><br /><sub>1170 × 2080 pixels</sub></td>
+  </tr>
+</table>
 
 ## What it does
 
