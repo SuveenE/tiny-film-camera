@@ -8,7 +8,7 @@ feedback for startup and photo capture, and a local photo gallery can be accesse
 directly from your phone.
 
 <p align="center">
-  <img src="assets/guides/readme-showcase-v3.png" alt="Tiny Film Camera assembled, its components, the v1 CAD design, and a sample photo" width="920" />
+  <img src="assets/guides/readme-showcase-with-sample.png" alt="Tiny Film Camera assembled, its components, the v1 CAD design, and a sample photo" width="920" />
 </p>
 <p align="center">
   <sub>
