@@ -4,6 +4,7 @@ import importlib.util
 from pathlib import Path
 import sys
 import unittest
+from tempfile import TemporaryDirectory
 from unittest.mock import MagicMock, patch
 
 import numpy as np
@@ -141,34 +142,33 @@ class CameraRotationTest(unittest.TestCase):
         image = MagicMock()
         image.save.side_effect = lambda *args, **kwargs: events.append("saved")
 
-        with (
-            patch.object(
-                camera,
-                "_image_from_picamera_frame",
-                side_effect=lambda frame: events.append("processed") or image,
-            ),
-            patch.object(camera, "_rotate_image", return_value=image),
-            patch.object(
-                camera,
-                "apply_photo_filter",
-                side_effect=lambda source, name: events.append("filtered") or image,
-            ),
-            patch.object(
-                camera,
-                "write_photo_filter_metadata",
-                side_effect=lambda path, name: events.append("metadata"),
-            ),
-        ):
-            camera._capture_and_save_image(
-                picam2,
-                camera.CaptureSettings(),
-                Path("photo.jpg"),
-                lambda: events.append("sound"),
-            )
+        with TemporaryDirectory() as tmpdir:
+            output_path = Path(tmpdir) / "photo.jpg"
+            with (
+                patch.object(
+                    camera,
+                    "_image_from_picamera_frame",
+                    side_effect=lambda frame: events.append("processed") or image,
+                ),
+                patch.object(camera, "_rotate_image", return_value=image),
+                patch.object(
+                    camera,
+                    "apply_photo_filter",
+                    side_effect=lambda source, name: events.append("filtered") or image,
+                ),
+            ):
+                camera._capture_and_save_image(
+                    picam2,
+                    camera.CaptureSettings(),
+                    output_path,
+                    lambda: events.append("sound"),
+                )
+
+            self.assertFalse(output_path.with_name("photo.jpg.json").exists())
 
         self.assertEqual(
             events,
-            ["captured", "sound", "processed", "filtered", "saved", "metadata"],
+            ["captured", "sound", "processed", "filtered", "saved"],
         )
 
     def test_rotation_90_is_clockwise(self) -> None:

@@ -16,7 +16,6 @@ SOURCE_ROOT = Path(__file__).resolve().parents[1] / "src" / "tiny-film-cam"
 if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
-capture_metadata = importlib.import_module("capture_metadata")
 filter_switch = importlib.import_module("filter_switch")
 photo_filters = importlib.import_module("photo_filters")
 web = importlib.import_module("web")
@@ -100,23 +99,7 @@ class PhotoFiltersTest(unittest.TestCase):
         self.assertEqual(unknown["active_filter"]["id"], "normal")
         self.assertIn("Unknown photo filter", unknown["error"])
 
-    def test_metadata_round_trip_and_delete(self) -> None:
-        with TemporaryDirectory() as tmpdir:
-            capture_path = Path(tmpdir) / "photo.jpg"
-            capture_path.write_bytes(b"jpeg")
-
-            metadata_path = capture_metadata.write_photo_filter_metadata(
-                capture_path,
-                "black_and_white",
-            )
-            payload = capture_metadata.read_capture_metadata(capture_path)
-            deleted = capture_metadata.delete_capture_metadata(capture_path)
-
-        self.assertEqual(payload["photo_filter"]["label"], "Black & white")
-        self.assertTrue(deleted)
-        self.assertFalse(metadata_path.exists())
-
-    def test_web_gallery_reads_and_deletes_filter_metadata(self) -> None:
+    def test_web_gallery_deletes_legacy_filter_metadata(self) -> None:
         with TemporaryDirectory() as tmpdir:
             project_root = Path(tmpdir)
             capture_path = (
@@ -124,7 +107,8 @@ class PhotoFiltersTest(unittest.TestCase):
             )
             capture_path.parent.mkdir(parents=True)
             capture_path.write_bytes(b"jpeg")
-            capture_metadata.write_photo_filter_metadata(capture_path, "cold")
+            metadata_path = capture_path.with_name(f"{capture_path.name}.json")
+            metadata_path.write_text('{"photo_filter": "cold"}', encoding="utf-8")
 
             item = web.build_capture_image(project_root, capture_path)
             deleted = web.delete_capture_image(
@@ -132,9 +116,9 @@ class PhotoFiltersTest(unittest.TestCase):
                 "2026-08-07/photo.jpg",
             )
 
-        self.assertEqual(item["photo_filter"]["id"], "cold")
+        self.assertNotIn("photo_filter", item)
         self.assertEqual(deleted["relative_path"], "2026-08-07/photo.jpg")
-        self.assertFalse(capture_metadata.metadata_path_for(capture_path).exists())
+        self.assertFalse(metadata_path.exists())
 
     def test_web_capture_uses_live_filter_selection(self) -> None:
         with TemporaryDirectory() as tmpdir:
@@ -146,10 +130,6 @@ class PhotoFiltersTest(unittest.TestCase):
 
             def fake_capture(settings):
                 captured_settings.append(settings)
-                capture_metadata.write_photo_filter_metadata(
-                    output_path,
-                    settings.photo_filter,
-                )
                 return output_path
 
             with (
@@ -163,7 +143,7 @@ class PhotoFiltersTest(unittest.TestCase):
                 item = web.capture_from_web(project_root)
 
         self.assertEqual(captured_settings[0].photo_filter, "black_and_white")
-        self.assertEqual(item["photo_filter"]["id"], "black_and_white")
+        self.assertNotIn("photo_filter", item)
 
     def test_web_page_shows_color_coded_filter_modes(self) -> None:
         page = web.render_page().decode("utf-8")
