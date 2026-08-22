@@ -18,27 +18,43 @@ directly from your phone.
   </sub>
 </p>
 
-## Sample photos
-
-An original photo and a zoomed-in view captured with Tiny Film Camera. Click
-either image to view it at full resolution.
+## CAD designs
 
 <table>
   <tr>
-    <td align="center" width="68%">
-      <a href="assets/photo-samples/train-original-4608x2592.jpg">
-        <img src="assets/photo-samples/train-original-4608x2592.jpg" alt="Original high-resolution photo of a train passing city buildings" width="620" />
-      </a>
+    <td align="center" width="50%">
+      <video src="assets/v1/cad-demo-v1.mp4" controls width="100%"></video>
+      <br />
+      <a href="assets/v1/cad-demo-v1.mp4"><strong>CAD demo</strong></a>
     </td>
-    <td align="center" width="32%">
-      <a href="assets/photo-samples/train-zoomed-1170x2080.jpg">
-        <img src="assets/photo-samples/train-zoomed-1170x2080.jpg" alt="Zoomed-in high-resolution view of the train and city buildings" width="292" />
+    <td align="center" width="50%">
+      <a href="assets/v1/v1-cad.png">
+        <img src="assets/v1/v1-cad.png" alt="Tiny Film Camera v1 CAD design" width="100%" />
       </a>
+      <br />
+      <strong>v1 CAD design</strong>
     </td>
   </tr>
+</table>
+
+## Components and variants
+
+<table>
   <tr>
-    <td align="center"><strong>Original</strong><br /><sub>4608 × 2592 pixels</sub></td>
-    <td align="center"><strong>Zoomed in</strong><br /><sub>1170 × 2080 pixels</sub></td>
+    <td align="center" width="50%">
+      <a href="assets/guides/components.png">
+        <img src="assets/guides/components.png" alt="Components used to build Tiny Film Camera" width="100%" />
+      </a>
+      <br />
+      <strong>Components</strong>
+    </td>
+    <td align="center" width="50%">
+      <a href="assets/guides/variant.png">
+        <img src="assets/guides/variant.png" alt="Tiny Film Camera variant" width="100%" />
+      </a>
+      <br />
+      <strong>Variant</strong>
+    </td>
   </tr>
 </table>
 
