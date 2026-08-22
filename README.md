@@ -67,10 +67,10 @@ Browse all [Tiny Film Camera CAD components on Onshape](https://cad.onshape.com/
   <tr>
     <td align="center" width="50%">
       <a href="assets/v1/cad-demo-v1.mp4">
-        <img src="assets/v1/cad-demo-v1.gif" alt="Animated Tiny Film Camera v1 CAD demo" width="100%" />
+        <img src="assets/v1/cad-demo-v1.gif" alt="Animated view of the assembled Tiny Film Camera v1 enclosure" width="100%" />
       </a>
       <br />
-      <a href="assets/v1/cad-demo-v1.mp4"><strong>CAD demo</strong></a>
+      <strong>Assembled camera</strong>
     </td>
     <td align="center" width="50%">
       <a href="assets/v1/v1-cad.png">
@@ -81,6 +81,17 @@ Browse all [Tiny Film Camera CAD components on Onshape](https://cad.onshape.com/
     </td>
   </tr>
 </table>
+
+## Web app
+
+Use the phone-friendly web app to take photos, record clips, switch photo modes,
+check the battery, and manage captured media.
+
+<p align="center">
+  <a href="assets/web-app.jpg">
+    <img src="assets/web-app.jpg" alt="Tiny Film Camera web app showing capture controls, photo modes, battery level, and gallery" width="420" />
+  </a>
+</p>
 
 ## Quick start
 
