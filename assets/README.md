@@ -14,11 +14,21 @@ Full-resolution camera samples, preserved without recompression:
   4608 × 2592 pixels
 - `photo-samples/train-zoomed-1170x2080.jpg` — zoomed-in portrait view,
   1170 × 2080 pixels
+- `photo-samples/train-sample-1935x1346.jpg` — landscape sample photo,
+  1935 × 1346 pixels
 
-Regenerate the README collage from the original showcase and portrait sample:
+## README collages
+
+- `guides/readme-showcase-with-sample.png` — original showcase with an added
+  portrait sample column
+- `guides/readme-showcase-two-column.png` — assembled camera on the left, with
+  the front-facing CAD card and landscape sample stacked on the right
+
+Regenerate the collages from their checked-in source images:
 
 ```bash
 python3 assets/guides/generate-readme-showcase.py
+python3 assets/guides/generate-readme-showcase-two-column.py
 ```
 
 ## v1 assets
