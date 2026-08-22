@@ -8,14 +8,13 @@ feedback for startup and photo capture, and a local photo gallery can be accesse
 directly from your phone.
 
 <p align="center">
-  <img src="assets/guides/readme-showcase-with-sample.png" alt="Tiny Film Camera assembled, its components, the v1 CAD design, and a sample photo" width="920" />
+  <img src="assets/guides/readme-showcase-two-column.png" alt="Tiny Film Camera assembled, the v1 CAD design, and a sample photo" width="920" />
 </p>
 <p align="center">
   <sub>
     <a href="assets/v1/product-images/camera-launch-warm.png">Assembled camera</a> ·
-    <a href="assets/guides/components.png">Components</a> ·
     <a href="assets/v1/v1-design.png">v1 CAD design</a> ·
-    <a href="assets/photo-samples/train-zoomed-1170x2080.jpg">Sample photo</a>
+    <a href="assets/photo-samples/train-sample-1935x1346.jpg">Sample photo</a>
   </sub>
 </p>
 
