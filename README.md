@@ -18,6 +18,15 @@ directly from your phone.
   </sub>
 </p>
 
+## What it does
+
+- Use dedicated physical buttons for photos and short video clips.
+- Choose Warm, Cold, or Black & white with a three-position hardware switch.
+- Capture, browse, download, and delete photos from a phone on the same Wi-Fi.
+- Monitor the Waveshare UPS battery from the web interface.
+- Apply configurable exposure, white-balance, focus, rotation, and JPEG settings.
+- Start the web app and hardware daemons automatically with systemd.
+
 ## CAD designs
 
 <table>
@@ -59,15 +68,6 @@ directly from your phone.
     </td>
   </tr>
 </table>
-
-## What it does
-
-- Use dedicated physical buttons for photos and short video clips.
-- Choose Warm, Cold, or Black & white with a three-position hardware switch.
-- Capture, browse, download, and delete photos from a phone on the same Wi-Fi.
-- Monitor the Waveshare UPS battery from the web interface.
-- Apply configurable exposure, white-balance, focus, rotation, and JPEG settings.
-- Start the web app and hardware daemons automatically with systemd.
 
 ## Hardware
 
