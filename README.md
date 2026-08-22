@@ -82,17 +82,6 @@ Browse all [Tiny Film Camera CAD components on Onshape](https://cad.onshape.com/
   </tr>
 </table>
 
-## Web app
-
-Use the phone-friendly web app to take photos, record clips, switch photo modes,
-check the battery, and manage captured media.
-
-<p align="center">
-  <a href="assets/web-app.jpg">
-    <img src="assets/web-app.jpg" alt="Tiny Film Camera web app showing capture controls, photo modes, battery level, and gallery" width="420" />
-  </a>
-</p>
-
 ## Quick start
 
 On a Raspberry Pi running Raspberry Pi OS:
@@ -112,6 +101,12 @@ cp .env.example .env
 
 Open `http://<pi-ip>:8000` from a phone on the same Wi-Fi network. Captures are
 saved under `data/captures/`.
+
+<p align="center">
+  <a href="assets/web-app.jpg">
+    <img src="assets/web-app.jpg" alt="Tiny Film Camera web app showing capture controls, photo modes, battery level, and gallery" width="252" />
+  </a>
+</p>
 
 > [!WARNING]
 > The web interface has no authentication. Use it only on a trusted local
