@@ -31,6 +31,21 @@ python3 src/tiny-film-cam/capture.py \
 python3 src/tiny-film-cam/capture.py
 ```
 
+## Take a photo with the Vivid 50 approximation
+```bash
+python3 src/tiny-film-cam/capture.py \
+  --output vivid-50.jpg \
+  --photo-filter vivid_50
+```
+
+The app's `vivid_50` look includes a selective colour boost and tone curve that
+the Raspberry Pi ISP controls cannot express. For a faster, ISP-only rough
+approximation without the app's JPEG post-processing, use:
+
+```bash
+rpicam-still -o vivid-50-rough.jpg --contrast 1.12 --saturation 1.15
+```
+
 ## Take a full-size Camera Module 3 photo
 ```bash
 python3 src/tiny-film-cam/capture.py --width 4608 --height 2592
