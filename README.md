@@ -23,7 +23,9 @@ directly from your phone.
 <table>
   <tr>
     <td align="center" width="50%">
-      <video src="assets/v1/cad-demo-v1.mp4" controls width="100%"></video>
+      <a href="assets/v1/cad-demo-v1.mp4">
+        <img src="assets/v1/cad-demo-v1.gif" alt="Animated Tiny Film Camera v1 CAD demo" width="100%" />
+      </a>
       <br />
       <a href="assets/v1/cad-demo-v1.mp4"><strong>CAD demo</strong></a>
     </td>
@@ -37,7 +39,7 @@ directly from your phone.
   </tr>
 </table>
 
-## Components and variants
+## Components and wiring
 
 <table>
   <tr>
@@ -49,11 +51,11 @@ directly from your phone.
       <strong>Components</strong>
     </td>
     <td align="center" width="50%">
-      <a href="assets/guides/variant.png">
-        <img src="assets/guides/variant.png" alt="Tiny Film Camera variant" width="100%" />
+      <a href="assets/guides/wiring.png">
+        <img src="assets/guides/wiring.png" alt="Tiny Film Camera wiring guide" width="100%" />
       </a>
       <br />
-      <strong>Variant</strong>
+      <strong>Wiring</strong>
     </td>
   </tr>
 </table>
