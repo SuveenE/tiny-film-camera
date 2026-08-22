@@ -27,28 +27,18 @@ directly from your phone.
 - Apply configurable exposure, white-balance, focus, rotation, and JPEG settings.
 - Start the web app and hardware daemons automatically with systemd.
 
-## CAD designs
+## Hardware
 
-<table>
-  <tr>
-    <td align="center" width="50%">
-      <a href="assets/v1/cad-demo-v1.mp4">
-        <img src="assets/v1/cad-demo-v1.gif" alt="Animated Tiny Film Camera v1 CAD demo" width="100%" />
-      </a>
-      <br />
-      <a href="assets/v1/cad-demo-v1.mp4"><strong>CAD demo</strong></a>
-    </td>
-    <td align="center" width="50%">
-      <a href="assets/v1/v1-cad.png">
-        <img src="assets/v1/v1-cad.png" alt="Tiny Film Camera v1 CAD design" width="100%" />
-      </a>
-      <br />
-      <strong>v1 CAD design</strong>
-    </td>
-  </tr>
-</table>
+- Raspberry Pi Zero 2 W
+- Raspberry Pi Camera Module 3
+- Waveshare UPS HAT (C)
+- Two momentary buttons (photo and video)
+- Optional passive buzzer and SS23D32 three-position switch
+- 3D-printed enclosure from [`assets/`](assets/README.md)
 
-## Components and wiring
+See the complete [bill of materials](docs/bom.md) and [setup guide](docs/setup.md).
+
+### Components and wiring
 
 <table>
   <tr>
@@ -69,16 +59,28 @@ directly from your phone.
   </tr>
 </table>
 
-## Hardware
+## CAD designs
 
-- Raspberry Pi Zero 2 W
-- Raspberry Pi Camera Module 3
-- Waveshare UPS HAT (C)
-- Two momentary buttons (photo and video)
-- Optional passive buzzer and SS23D32 three-position switch
-- 3D-printed enclosure from [`assets/`](assets/README.md)
+Browse all [Tiny Film Camera CAD components on Onshape](https://cad.onshape.com/documents?nodeId=a67770dd4e9bb35af20c342a&resourceType=folder).
 
-See the complete [bill of materials](docs/bom.md) and [setup guide](docs/setup.md).
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <a href="assets/v1/cad-demo-v1.mp4">
+        <img src="assets/v1/cad-demo-v1.gif" alt="Animated Tiny Film Camera v1 CAD demo" width="100%" />
+      </a>
+      <br />
+      <a href="assets/v1/cad-demo-v1.mp4"><strong>CAD demo</strong></a>
+    </td>
+    <td align="center" width="50%">
+      <a href="assets/v1/v1-cad.png">
+        <img src="assets/v1/v1-cad.png" alt="Tiny Film Camera v1 CAD design" width="100%" />
+      </a>
+      <br />
+      <strong>v1 CAD design</strong>
+    </td>
+  </tr>
+</table>
 
 ## Quick start
 
