@@ -7,6 +7,9 @@ and black & white) controlled by a physical slider switch. A buzzer provides
 feedback for startup and photo capture, and a local photo gallery can be accessed
 directly from your phone.
 
+Read about the design and build process in
+[Building my own camera](https://suveenellawela.com/thoughts/building-my-own-camera).
+
 <p align="center">
   <img src="assets/guides/readme-showcase-two-column.png" alt="Tiny Film Camera assembled, the v1 CAD design, and a sample photo" width="920" />
 </p>
