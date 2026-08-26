@@ -17,7 +17,8 @@ Read about the design and build process in
   <sub>
     <a href="assets/v1/product-images/camera-launch-warm.png">Assembled camera</a> ·
     <a href="assets/v1/v1-design.png">v1 CAD design</a> ·
-    <a href="assets/photo-samples/train-sample-1935x1346.jpg">Sample photo</a>
+    <a href="assets/photo-samples/train-sample-1935x1346.jpg">Sample photo</a> ·
+    <a href="assets/photo-samples/train-original-4608x2592.jpg">Original photo (4608 × 2592)</a>
   </sub>
 </p>
 
