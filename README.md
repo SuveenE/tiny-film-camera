@@ -140,6 +140,13 @@ your local `.env`.
 - [Troubleshooting](docs/debug.md)
 - [Enclosure and printable assets](assets/README.md)
 
+## Limitations
+
+- The Raspberry Pi takes approximately 30 seconds to 1 minute to fully start
+  up, so there is a short wait before the camera is ready to use.
+- Each photo takes approximately 3 to 6 seconds to process because images are
+  captured at full resolution.
+
 ## License
 
 Code and original CAD are available under the [MIT License](LICENSE).
