@@ -66,6 +66,7 @@ See the complete [bill of materials](docs/bom.md) and [setup guide](docs/setup.m
 ## CAD designs
 
 Browse all [Tiny Film Camera CAD components on Onshape](https://cad.onshape.com/documents?nodeId=a67770dd4e9bb35af20c342a&resourceType=folder).
+Download the [printable enclosure files on Printables](https://www.printables.com/model/1827732-raspberry-pi-zero-2-w-camera-module-3-ups-hat-encl/files).
 
 <table>
   <tr>
