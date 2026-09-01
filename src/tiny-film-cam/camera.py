@@ -8,7 +8,6 @@ import os
 from pathlib import Path
 from typing import Callable, Iterator, Literal
 
-from capture_metadata import write_photo_filter_metadata
 from photo_filters import (
     DEFAULT_PHOTO_FILTER,
     PhotoFilterName,
@@ -424,7 +423,6 @@ def _capture_and_save_image(
         format="JPEG",
         quality=_normalized_quality(settings.quality),
     )
-    write_photo_filter_metadata(output_path, settings.photo_filter)
 
 
 def capture_photos(
