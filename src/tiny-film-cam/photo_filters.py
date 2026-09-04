@@ -6,9 +6,9 @@ from typing import Literal, cast
 from filter_switch import filter_status_from_cache
 
 
-PhotoFilterName = Literal["black_and_white", "normal", "cold"]
+PhotoFilterName = Literal["black_and_white", "normal", "cold", "vivid_50"]
 DEFAULT_PHOTO_FILTER: PhotoFilterName = "normal"
-PHOTO_FILTER_NAMES = ("black_and_white", "normal", "cold")
+PHOTO_FILTER_NAMES = ("black_and_white", "normal", "cold", "vivid_50")
 PHOTO_FILTER_DETAILS: dict[PhotoFilterName, dict[str, object]] = {
     "black_and_white": {
         "id": "black_and_white",
@@ -25,7 +25,20 @@ PHOTO_FILTER_DETAILS: dict[PhotoFilterName, dict[str, object]] = {
         "label": "Cold",
         "version": 1,
     },
+    "vivid_50": {
+        "id": "vivid_50",
+        "label": "Vivid 50",
+        "version": 1,
+        "intensity_percent": 50,
+        "approximation": True,
+    },
 }
+
+VIVID_50_BLEND = 0.5
+VIVID_FULL_CONTRAST = 1.22
+VIVID_FULL_SATURATION = 1.18
+VIVID_FULL_VIBRANCE = 0.35
+VIVID_FULL_TONE_CURVE = 0.20
 
 
 def normalize_photo_filter(value: object) -> PhotoFilterName:
@@ -65,6 +78,53 @@ def _scaled_lut(multiplier: float) -> list[int]:
     return [max(0, min(255, round(value * multiplier))) for value in range(256)]
 
 
+def _vibrance_lut(amount: float) -> list[int]:
+    """Boost muted colours more than colours already near full saturation."""
+    return [
+        max(
+            0,
+            min(
+                255,
+                round(value + amount * value * (1.0 - value / 255.0)),
+            ),
+        )
+        for value in range(256)
+    ]
+
+
+def _s_curve_lut(amount: float) -> list[int]:
+    """Return a gentle, endpoint-preserving contrast curve."""
+    lut = []
+    for value in range(256):
+        normalized = value / 255.0
+        smoothstep = normalized * normalized * (3.0 - 2.0 * normalized)
+        curved = normalized + amount * (smoothstep - normalized)
+        lut.append(max(0, min(255, round(curved * 255.0))))
+    return lut
+
+
+def _apply_rgb_lut(image, lut: list[int]):
+    from PIL import Image
+
+    red, green, blue = image.split()
+    return Image.merge("RGB", (red.point(lut), green.point(lut), blue.point(lut)))
+
+
+def _apply_vivid_50(rgb_image):
+    """Approximate Apple's Vivid filter, blended to its 50% slider position."""
+    from PIL import Image, ImageEnhance
+
+    vivid = ImageEnhance.Contrast(rgb_image).enhance(VIVID_FULL_CONTRAST)
+    vivid = _apply_rgb_lut(vivid, _s_curve_lut(VIVID_FULL_TONE_CURVE))
+
+    hue, saturation, value = vivid.convert("HSV").split()
+    saturation = saturation.point(_vibrance_lut(VIVID_FULL_VIBRANCE))
+    vivid = Image.merge("HSV", (hue, saturation, value)).convert("RGB")
+    vivid = ImageEnhance.Color(vivid).enhance(VIVID_FULL_SATURATION)
+
+    return Image.blend(rgb_image, vivid, VIVID_50_BLEND)
+
+
 def apply_photo_filter(image, name: PhotoFilterName):
     """Apply a lightweight, versioned photo look to a Pillow image."""
     if name == "normal":
@@ -76,6 +136,9 @@ def apply_photo_filter(image, name: PhotoFilterName):
     if name == "black_and_white":
         grayscale = ImageOps.grayscale(rgb_image)
         return ImageEnhance.Contrast(grayscale).enhance(1.08).convert("RGB")
+
+    if name == "vivid_50":
+        return _apply_vivid_50(rgb_image)
 
     muted = ImageEnhance.Color(rgb_image).enhance(0.88)
     red, green, blue = muted.split()

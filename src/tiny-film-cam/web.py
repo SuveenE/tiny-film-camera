@@ -495,6 +495,10 @@ def render_page(page_name: str = "home") -> bytes:
             background: #dce9ff;
             color: #285ba9;
           }
+          [data-filter="vivid_50"] .mode-icon {
+            background: linear-gradient(135deg, #ffb24a, #ff4f81 52%, #635bff);
+            color: #fff;
+          }
           .battery-summary {
             align-items: center;
             color: #367552;
@@ -837,6 +841,12 @@ def render_page(page_name: str = "home") -> bytes:
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v20M4 6l16 12M20 6 4 18M8.5 4 12 6l3.5-2M8.5 20l3.5-2 3.5 2M3.5 10 7 12l-3.5 2M20.5 10 17 12l3.5 2"></path></svg>
                   </span>
                   <span>Cold</span>
+                </div>
+                <div class="mode-option" data-filter="vivid_50" role="listitem">
+                  <span class="mode-icon">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2 1.7 5.3L19 9l-5.3 1.7L12 16l-1.7-5.3L5 9l5.3-1.7Z"></path><path d="m18.5 15 .8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8Z"></path></svg>
+                  </span>
+                  <span>Vivid 50</span>
                 </div>
               </div>
             </div>

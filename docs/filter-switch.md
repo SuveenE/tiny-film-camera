@@ -64,6 +64,13 @@ TINY_FILM_FILTER_LEFT=cold
 TINY_FILM_FILTER_RIGHT=black_and_white
 ```
 
+To put the Vivid 50 approximation on one of the three switch positions, assign
+`vivid_50` to that position. For example, this replaces Cold on the right:
+
+```dotenv
+TINY_FILM_FILTER_RIGHT=vivid_50
+```
+
 ## 4. Install and verify the service
 
 ```bash
