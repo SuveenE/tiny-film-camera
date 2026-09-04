@@ -58,7 +58,9 @@ class CameraRotationTest(unittest.TestCase):
         self.assertEqual(camera.VideoSettings().fps, 15)
         self.assertEqual(settings.fps, 15)
 
-    def test_video_recording_preserves_timestamps_and_uses_yuv420(self) -> None:
+    def test_video_recording_preserves_timestamps_and_encoder_colour_metadata(
+        self,
+    ) -> None:
         picam2 = MagicMock()
         encoder = object()
         output = object()
@@ -102,12 +104,17 @@ class CameraRotationTest(unittest.TestCase):
                 saved_path = camera.record_video(settings)
 
         self.assertEqual(saved_path, output_path)
-        h264_encoder.assert_called_once_with()
+        h264_encoder.assert_called_once_with(
+            profile="constrained baseline",
+            framerate=15.0,
+            enable_sps_framerate=True,
+            iperiod=30,
+        )
         recording_path = output_path.with_name(f".{output_path.name}.recording.mkv")
         pyav_output.assert_called_once_with(str(recording_path))
         finalize_video.assert_called_once_with(recording_path, output_path)
         picam2.create_video_configuration.assert_called_once_with(
-            main={"size": (1280, 720), "format": "YUV420"},
+            main={"size": (1280, 720)},
             controls={
                 "Sharpness": 0.3,
                 "Contrast": 0.85,

@@ -631,19 +631,30 @@ def record_video(settings: VideoSettings = VideoSettings()) -> Path:
             controls["FrameRate"] = float(settings.fps)
 
         config = picam2.create_video_configuration(
-            main={
-                "size": (settings.width, settings.height),
-                "format": "YUV420",
-            },
+            # Let Picamera2 choose its normal RGB stream. Forcing YUV420 here
+            # drops the BT.709 colour metadata from the Pi's encoded H.264,
+            # which makes otherwise valid clips render blank in Safari.
+            main={"size": (settings.width, settings.height)},
             controls=controls,
             transform=_video_transform(settings.rotation),
         )
         output_path = _video_output_path(settings)
         recording_path = _video_recording_path(output_path)
         recording_path.unlink(missing_ok=True)
-        encoder = (
-            H264Encoder(bitrate=settings.bitrate) if settings.bitrate else H264Encoder()
-        )
+        encoder_options: dict[str, object] = {
+            "profile": "constrained baseline",
+        }
+        if settings.bitrate:
+            encoder_options["bitrate"] = settings.bitrate
+        if settings.fps > 0:
+            encoder_options.update(
+                {
+                    "framerate": float(settings.fps),
+                    "enable_sps_framerate": True,
+                    "iperiod": settings.fps * 2,
+                }
+            )
+        encoder = H264Encoder(**encoder_options)
         started = False
 
         try:
