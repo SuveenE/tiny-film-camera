@@ -6,6 +6,7 @@ from datetime import datetime
 import fcntl
 import os
 from pathlib import Path
+import subprocess
 from typing import Callable, Iterator, Literal
 
 from capture_metadata import write_photo_filter_metadata
@@ -527,6 +528,52 @@ def _video_transform(rotation: Rotation):
     return Transform()
 
 
+def _video_recording_path(output_path: Path) -> Path:
+    return output_path.with_name(f".{output_path.name}.recording.mkv")
+
+
+def _finalize_video(recording_path: Path, output_path: Path) -> None:
+    """Losslessly finalize timestamped H.264 as a browser-friendly MP4."""
+    finalizing_path = output_path.with_name(f".{output_path.name}.finalizing")
+    finalizing_path.unlink(missing_ok=True)
+
+    command = [
+        "ffmpeg",
+        "-y",
+        "-v",
+        "error",
+        "-i",
+        str(recording_path),
+        "-map",
+        "0:v:0",
+        "-c:v",
+        "copy",
+        "-tag:v",
+        "avc1",
+        "-movflags",
+        "+faststart",
+        "-f",
+        "mp4",
+        str(finalizing_path),
+    ]
+
+    try:
+        subprocess.run(command, check=True, capture_output=True, text=True)
+        os.replace(finalizing_path, output_path)
+    except FileNotFoundError as exc:
+        raise CameraCaptureError(
+            "Missing ffmpeg. Install it on the Pi with `sudo apt install ffmpeg`."
+        ) from exc
+    except subprocess.CalledProcessError as exc:
+        detail = exc.stderr.strip() if exc.stderr else ""
+        message = "ffmpeg could not finalize the video recording."
+        if detail:
+            message = f"{message} {detail}"
+        raise CameraCaptureError(message) from exc
+    finally:
+        finalizing_path.unlink(missing_ok=True)
+
+
 def record_video(settings: VideoSettings = VideoSettings()) -> Path:
     """Record a short H.264/MP4 clip from a Raspberry Pi Camera Module 3."""
     import time
@@ -570,26 +617,33 @@ def record_video(settings: VideoSettings = VideoSettings()) -> Path:
             transform=_video_transform(settings.rotation),
         )
         output_path = _video_output_path(settings)
+        recording_path = _video_recording_path(output_path)
+        recording_path.unlink(missing_ok=True)
         encoder = (
             H264Encoder(bitrate=settings.bitrate) if settings.bitrate else H264Encoder()
         )
-        output = PyavOutput(str(output_path))
         started = False
 
         try:
-            picam2.configure(config)
-            picam2.start()
-            started = True
-            if settings.warmup_seconds > 0:
-                time.sleep(settings.warmup_seconds)
-            _apply_awb_lock(picam2, settings)
+            output = PyavOutput(str(recording_path))
+            try:
+                picam2.configure(config)
+                picam2.start()
+                started = True
+                if settings.warmup_seconds > 0:
+                    time.sleep(settings.warmup_seconds)
+                _apply_awb_lock(picam2, settings)
 
-            picam2.start_recording(encoder, output)
-            time.sleep(settings.duration_seconds)
-            picam2.stop_recording()
+                picam2.start_recording(encoder, output)
+                time.sleep(settings.duration_seconds)
+                picam2.stop_recording()
+            finally:
+                if started:
+                    picam2.stop()
+                picam2.close()
+
+            _finalize_video(recording_path, output_path)
         finally:
-            if started:
-                picam2.stop()
-            picam2.close()
+            recording_path.unlink(missing_ok=True)
 
         return output_path

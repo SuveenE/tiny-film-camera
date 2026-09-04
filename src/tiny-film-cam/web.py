@@ -1048,7 +1048,7 @@ def render_page(page_name: str = "home") -> bytes:
               preview.controls = true;
               preview.playsInline = true;
               preview.setAttribute("playsinline", "");
-              preview.preload = "metadata";
+              preview.preload = "auto";
               preview.src = previewSrc;
               preview.addEventListener("error", () => renderMediaError(image), { once: true });
             } else {

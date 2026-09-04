@@ -22,9 +22,10 @@
    ```bash
    rpicam-vid -t 5000 -o test.mp4
    ```
-7. Install Python helpers (`python3-av` preserves camera timestamps in MP4 recordings):
+7. Install the camera helpers (`python3-av` preserves camera timestamps and
+   `ffmpeg` finalizes browser-friendly MP4 recordings):
    ```bash
-   sudo apt install -y python3-picamera2 python3-av python3-pil python3-gpiozero python3-smbus i2c-tools
+   sudo apt install -y ffmpeg python3-picamera2 python3-av python3-pil python3-gpiozero python3-smbus i2c-tools
    ```
 8. Enable I2C for the Waveshare UPS HAT (C):
    ```bash

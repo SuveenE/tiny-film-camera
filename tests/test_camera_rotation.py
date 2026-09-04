@@ -96,13 +96,16 @@ class CameraRotationTest(unittest.TestCase):
                 ),
                 patch.object(camera, "_open_camera", return_value=picam2),
                 patch.object(camera, "_video_transform", return_value=None),
+                patch.object(camera, "_finalize_video") as finalize_video,
                 patch("time.sleep") as sleep,
             ):
                 saved_path = camera.record_video(settings)
 
         self.assertEqual(saved_path, output_path)
         h264_encoder.assert_called_once_with()
-        pyav_output.assert_called_once_with(str(output_path))
+        recording_path = output_path.with_name(f".{output_path.name}.recording.mkv")
+        pyav_output.assert_called_once_with(str(recording_path))
+        finalize_video.assert_called_once_with(recording_path, output_path)
         picam2.create_video_configuration.assert_called_once_with(
             main={"size": (1280, 720), "format": "YUV420"},
             controls={
@@ -116,6 +119,30 @@ class CameraRotationTest(unittest.TestCase):
         )
         picam2.start_recording.assert_called_once_with(encoder, output)
         sleep.assert_called_once_with(10)
+
+    def test_video_finalization_copies_h264_into_fast_start_mp4(self) -> None:
+        with TemporaryDirectory() as temporary_directory:
+            recording_path = Path(temporary_directory) / "recording.mkv"
+            output_path = Path(temporary_directory) / "clip.mp4"
+            recording_path.write_bytes(b"matroska")
+
+            def fake_run(command, **kwargs):
+                Path(command[-1]).write_bytes(b"mp4")
+                return None
+
+            with patch.object(camera.subprocess, "run", side_effect=fake_run) as run:
+                camera._finalize_video(recording_path, output_path)
+
+            command = run.call_args.args[0]
+            self.assertEqual(output_path.read_bytes(), b"mp4")
+            self.assertIn("copy", command)
+            self.assertIn("avc1", command)
+            self.assertIn("+faststart", command)
+            self.assertEqual(command[-3:-1], ["-f", "mp4"])
+            self.assertEqual(
+                run.call_args.kwargs,
+                {"check": True, "capture_output": True, "text": True},
+            )
 
     def test_capture_settings_default_rotation_is_180(self) -> None:
         with patch.dict("os.environ", {}, clear=True):

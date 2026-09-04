@@ -40,6 +40,11 @@ class RenderPageTest(unittest.TestCase):
         self.assertNotIn('id="filter-active-label"', page)
         self.assertNotIn('id="filter-state"', page)
 
+    def test_selected_video_preloads_its_first_frame(self) -> None:
+        page = web.render_page().decode("utf-8")
+
+        self.assertIn('preview.preload = "auto"', page)
+
     def test_home_page_limits_the_gallery_and_links_to_the_full_gallery(self) -> None:
         page = web.render_page().decode("utf-8")
 
