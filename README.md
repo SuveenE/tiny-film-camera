@@ -97,7 +97,7 @@ cd tiny-film-camera
 
 sudo apt update
 sudo apt install -y \
-  python3-picamera2 python3-av python3-pil python3-gpiozero \
+  ffmpeg python3-picamera2 python3-av python3-pil python3-gpiozero \
   python3-smbus i2c-tools
 
 cp .env.example .env

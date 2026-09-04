@@ -76,9 +76,11 @@ Record a short video (H.264/MP4, 10s by default) into the same
 python3 src/tiny-film-cam/record.py --duration 10
 ```
 
-Video recording requires PyAV on the Pi (`sudo apt install python3-av`) and only
-supports rotation 0 or 180. PyAV preserves camera timestamps when frames arrive
-late, so recordings keep their requested real-world duration.
+Video recording requires PyAV and ffmpeg on the Pi
+(`sudo apt install python3-av ffmpeg`) and only supports rotation 0 or 180.
+PyAV preserves camera timestamps when frames arrive late, then ffmpeg losslessly
+places the MP4 index at the front so recordings retain their real-world duration
+and play reliably in phone browsers.
 
 Run the capture browser:
 
