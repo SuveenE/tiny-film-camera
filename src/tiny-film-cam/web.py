@@ -585,6 +585,23 @@ def render_page(page_name: str = "home") -> bytes:
             width: 100%;
             object-fit: cover;
           }
+          .gallery-load {
+            align-items: center;
+            color: var(--muted);
+            display: flex;
+            flex-direction: column;
+            font-size: 12px;
+            gap: 7px;
+          }
+          .gallery-load svg {
+            fill: none;
+            height: 28px;
+            stroke: currentColor;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            stroke-width: 1.7;
+            width: 28px;
+          }
           .gallery-video {
             align-content: center;
             background: linear-gradient(145deg, #272b36, #46506c);
@@ -869,6 +886,7 @@ def render_page(page_name: str = "home") -> bytes:
         <script>
           const isGalleryPage = document.body.dataset.page === "gallery";
           const HOME_GALLERY_LIMIT = __HOME_GALLERY_LIMIT__;
+          const INITIAL_THUMBNAIL_LIMIT = 3;
           const statusElement = document.getElementById("status");
           const latestFrame = document.getElementById("latest-frame");
           const captureInfo = document.getElementById("capture-info");
@@ -885,6 +903,7 @@ def render_page(page_name: str = "home") -> bytes:
           const filterSummary = document.getElementById("filter-summary");
           const modeOptions = Array.from(document.querySelectorAll(".mode-option"));
           let captureImages = [];
+          const loadedThumbnailPaths = new Set();
           let totalCaptureCount = 0;
           let selectedCaptureIndex = 0;
           let renderedCaptureKey = "";
@@ -932,6 +951,7 @@ def render_page(page_name: str = "home") -> bytes:
             const icons = {
               delete: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path></svg>',
               download: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="M7 10l5 5 5-5"></path><path d="M12 15V3"></path></svg>',
+              load: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="m3 16 5-5 4 4 3-3 6 6"></path></svg>',
               video: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="13" height="14" rx="2"></rect><path d="m16 10 5-3v10l-5-3Z"></path></svg>',
               play: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 7 8 5-8 5Z"></path></svg>',
             };
@@ -1077,6 +1097,21 @@ def render_page(page_name: str = "home") -> bytes:
 
               const thumb = document.createElement("span");
               thumb.className = "gallery-thumb";
+              let thumbnailLoaded = image.media_type === "video"
+                || index < INITIAL_THUMBNAIL_LIMIT
+                || loadedThumbnailPaths.has(image.relative_path);
+              const loadThumbnail = () => {
+                if (thumbnailLoaded || image.media_type === "video") return;
+                const thumbnail = document.createElement("img");
+                const viewUrl = image.view_url || image.download_url || "";
+                thumbnail.src = `${viewUrl}?v=${encodeURIComponent(image.modified_unix || "")}`;
+                thumbnail.alt = "";
+                thumbnail.decoding = "async";
+                thumb.replaceChildren(thumbnail);
+                loadedThumbnailPaths.add(image.relative_path);
+                thumbnailLoaded = true;
+                previewButton.setAttribute("aria-label", `Preview ${image.filename || "capture"}`);
+              };
               if (image.media_type === "video") {
                 const videoTile = document.createElement("span");
                 videoTile.className = "gallery-video";
@@ -1085,7 +1120,7 @@ def render_page(page_name: str = "home") -> bytes:
                 badge.className = "media-badge";
                 badge.innerHTML = `${iconSvg("play")} Video`;
                 thumb.append(videoTile, badge);
-              } else {
+              } else if (thumbnailLoaded) {
                 const thumbnail = document.createElement("img");
                 const viewUrl = image.view_url || image.download_url || "";
                 thumbnail.src = `${viewUrl}?v=${encodeURIComponent(image.modified_unix || "")}`;
@@ -1093,6 +1128,15 @@ def render_page(page_name: str = "home") -> bytes:
                 thumbnail.loading = "lazy";
                 thumbnail.decoding = "async";
                 thumb.appendChild(thumbnail);
+              } else {
+                const loadPrompt = document.createElement("span");
+                loadPrompt.className = "gallery-load";
+                loadPrompt.innerHTML = `${iconSvg("load")}<span>Load image</span>`;
+                thumb.appendChild(loadPrompt);
+                previewButton.setAttribute(
+                  "aria-label",
+                  `Load ${image.filename || "capture"}`,
+                );
               }
 
               const caption = document.createElement("span");
@@ -1100,6 +1144,10 @@ def render_page(page_name: str = "home") -> bytes:
               caption.textContent = image.filename || image.relative_path || "Capture";
               previewButton.append(thumb, caption);
               previewButton.addEventListener("click", () => {
+                if (!thumbnailLoaded && image.media_type !== "video") {
+                  loadThumbnail();
+                  return;
+                }
                 if (isGalleryPage) {
                   window.open(image.view_url, "_blank", "noopener");
                   return;
