@@ -39,14 +39,26 @@ class PhotoFiltersTest(unittest.TestCase):
         self.assertEqual(red, green)
         self.assertEqual(green, blue)
 
-    def test_cool_filter_reduces_red_and_raises_blue(self) -> None:
-        image = Image.new("RGB", (1, 1), (100, 100, 100))
+    def test_cool_filter_adds_teal_to_shadows(self) -> None:
+        image = Image.new("RGB", (1, 1), (60, 60, 60))
 
         filtered = photo_filters.apply_photo_filter(image, "cool")
 
         red, green, blue = filtered.getpixel((0, 0))
         self.assertLess(red, green)
         self.assertGreater(blue, green)
+
+    def test_cool_filter_adds_gold_to_highlights(self) -> None:
+        image = Image.new("RGB", (1, 1), (210, 210, 210))
+
+        filtered = photo_filters.apply_photo_filter(image, "cool")
+
+        red, green, blue = filtered.getpixel((0, 0))
+        self.assertGreater(red, green)
+        self.assertGreater(green, blue)
+
+    def test_cool_filter_metadata_version_tracks_new_grade(self) -> None:
+        self.assertEqual(photo_filters.photo_filter_details("cool")["version"], 2)
 
     def test_fresh_switch_selection_is_used(self) -> None:
         with TemporaryDirectory() as tmpdir:
