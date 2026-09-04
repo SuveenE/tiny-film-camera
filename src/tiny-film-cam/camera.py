@@ -541,11 +541,11 @@ def record_video(settings: VideoSettings = VideoSettings()) -> Path:
 
     try:
         from picamera2.encoders import H264Encoder
-        from picamera2.outputs import FfmpegOutput
+        from picamera2.outputs import PyavOutput
     except ImportError as exc:
         raise CameraCaptureError(
-            "Missing Picamera2 video encoders. Install ffmpeg on the Pi with "
-            "`sudo apt install ffmpeg`."
+            "Missing Picamera2 video dependencies. Install them on the Pi with "
+            "`sudo apt install python3-picamera2 python3-av`."
         ) from exc
 
     if settings.duration_seconds <= 0:
@@ -562,7 +562,10 @@ def record_video(settings: VideoSettings = VideoSettings()) -> Path:
             controls["FrameRate"] = float(settings.fps)
 
         config = picam2.create_video_configuration(
-            main={"size": (settings.width, settings.height)},
+            main={
+                "size": (settings.width, settings.height),
+                "format": "YUV420",
+            },
             controls=controls,
             transform=_video_transform(settings.rotation),
         )
@@ -570,7 +573,7 @@ def record_video(settings: VideoSettings = VideoSettings()) -> Path:
         encoder = (
             H264Encoder(bitrate=settings.bitrate) if settings.bitrate else H264Encoder()
         )
-        output = FfmpegOutput(str(output_path))
+        output = PyavOutput(str(output_path))
         started = False
 
         try:

@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+from contextlib import nullcontext
 import importlib.util
 from pathlib import Path
 import sys
+from tempfile import TemporaryDirectory
+from types import ModuleType
 import unittest
 from unittest.mock import MagicMock, patch
 
@@ -54,6 +57,65 @@ class CameraRotationTest(unittest.TestCase):
         self.assertEqual(camera.DEFAULT_VIDEO_FPS, 15)
         self.assertEqual(camera.VideoSettings().fps, 15)
         self.assertEqual(settings.fps, 15)
+
+    def test_video_recording_preserves_timestamps_and_uses_yuv420(self) -> None:
+        picam2 = MagicMock()
+        encoder = object()
+        output = object()
+        h264_encoder = MagicMock(return_value=encoder)
+        pyav_output = MagicMock(return_value=output)
+        picamera2_module = ModuleType("picamera2")
+        picamera2_module.Picamera2 = object  # type: ignore[attr-defined]
+        encoders_module = ModuleType("picamera2.encoders")
+        encoders_module.H264Encoder = h264_encoder  # type: ignore[attr-defined]
+        outputs_module = ModuleType("picamera2.outputs")
+        outputs_module.PyavOutput = pyav_output  # type: ignore[attr-defined]
+
+        with TemporaryDirectory() as temporary_directory:
+            output_path = Path(temporary_directory) / "clip.mp4"
+            settings = camera.VideoSettings(
+                output_dir=Path(temporary_directory),
+                filename=str(output_path),
+                duration_seconds=10,
+                warmup_seconds=0,
+                rotation=0,
+            )
+            with (
+                patch.dict(
+                    sys.modules,
+                    {
+                        "picamera2": picamera2_module,
+                        "picamera2.encoders": encoders_module,
+                        "picamera2.outputs": outputs_module,
+                    },
+                ),
+                patch.object(
+                    camera,
+                    "_locked_camera",
+                    return_value=nullcontext(),
+                ),
+                patch.object(camera, "_open_camera", return_value=picam2),
+                patch.object(camera, "_video_transform", return_value=None),
+                patch("time.sleep") as sleep,
+            ):
+                saved_path = camera.record_video(settings)
+
+        self.assertEqual(saved_path, output_path)
+        h264_encoder.assert_called_once_with()
+        pyav_output.assert_called_once_with(str(output_path))
+        picam2.create_video_configuration.assert_called_once_with(
+            main={"size": (1280, 720), "format": "YUV420"},
+            controls={
+                "Sharpness": 0.3,
+                "Contrast": 0.85,
+                "Saturation": 0.9,
+                "ExposureValue": -0.7,
+                "FrameRate": 15.0,
+            },
+            transform=None,
+        )
+        picam2.start_recording.assert_called_once_with(encoder, output)
+        sleep.assert_called_once_with(10)
 
     def test_capture_settings_default_rotation_is_180(self) -> None:
         with patch.dict("os.environ", {}, clear=True):
