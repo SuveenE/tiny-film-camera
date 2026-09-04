@@ -76,11 +76,13 @@ Record a short video (H.264/MP4, 10s by default) into the same
 python3 src/tiny-film-cam/record.py --duration 10
 ```
 
-Video recording requires PyAV and ffmpeg on the Pi
+Video recording requires PyAV, ffmpeg, and its `libx264` encoder on the Pi
 (`sudo apt install python3-av ffmpeg`) and only supports rotation 0 or 180.
-PyAV preserves camera timestamps when frames arrive late, then ffmpeg losslessly
-places the MP4 index at the front so recordings retain their real-world duration
-and play reliably in phone browsers. Each new video also gets a small
+PyAV preserves camera timestamps when frames arrive late. ffmpeg then converts
+the recording to constant-frame-rate H.264 that plays reliably in Safari and
+places the MP4 index at the front. This final conversion takes additional time
+after the requested footage has been recorded, so a 10-second clip takes longer
+than 10 seconds to finish. Each new video also gets a small
 `<video-name>.poster.jpg` preview for Safari; poster files stay out of the
 gallery and are removed with their video.
 
