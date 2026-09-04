@@ -44,6 +44,8 @@ class RenderPageTest(unittest.TestCase):
         page = web.render_page().decode("utf-8")
 
         self.assertIn('preview.preload = "auto"', page)
+        self.assertIn("preview.poster = `${image.poster_url}", page)
+        self.assertIn('preview.src = `${previewSrc}#t=0.001`', page)
 
     def test_home_page_limits_the_gallery_and_links_to_the_full_gallery(self) -> None:
         page = web.render_page().decode("utf-8")
@@ -90,6 +92,10 @@ class CaptureMediaServerTest(unittest.TestCase):
         )
         self.capture_path.parent.mkdir(parents=True)
         self.capture_path.write_bytes(b"0123456789")
+        self.poster_path = self.capture_path.with_name(
+            f"{self.capture_path.name}.poster.jpg"
+        )
+        self.poster_path.write_bytes(b"jpeg-poster")
         self.server = web.ThreadingHTTPServer(
             ("127.0.0.1", 0),
             web.build_handler(self.project_root, 0),
@@ -132,6 +138,35 @@ class CaptureMediaServerTest(unittest.TestCase):
         self.assertEqual(headers["Content-Range"], "bytes 2-5/10")
         self.assertEqual(headers["Content-Length"], "4")
         self.assertEqual(headers["Content-Type"], "video/mp4")
+
+    def test_video_poster_is_served_but_not_listed_as_a_capture(self) -> None:
+        status, headers, body = self.request(
+            "GET",
+            path="/image/captures/2026-08-10/clip.mp4.poster.jpg",
+        )
+        api_status, _, api_body = self.request("GET", path="/api/images")
+        payload = json.loads(api_body)
+
+        self.assertEqual(status, 200)
+        self.assertEqual(headers["Content-Type"], "image/jpeg")
+        self.assertEqual(body, b"jpeg-poster")
+        self.assertEqual(api_status, 200)
+        self.assertEqual(
+            [item["filename"] for item in payload["images"]], ["clip.mp4"]
+        )
+        self.assertEqual(
+            payload["images"][0]["poster_url"],
+            "/image/captures/2026-08-10/clip.mp4.poster.jpg",
+        )
+
+    def test_deleting_video_also_deletes_its_poster(self) -> None:
+        deleted = web.delete_capture_image(
+            self.project_root, "2026-08-10/clip.mp4"
+        )
+
+        self.assertIsNotNone(deleted)
+        self.assertFalse(self.capture_path.exists())
+        self.assertFalse(self.poster_path.exists())
 
     def test_unsatisfied_range_returns_416_with_file_size(self) -> None:
         status, headers, body = self.request("GET", {"Range": "bytes=20-30"})

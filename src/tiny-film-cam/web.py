@@ -21,6 +21,7 @@ from camera import (
     capture_photo,
     capture_settings_from_env,
     record_video,
+    video_poster_path,
     video_settings_from_env,
 )
 from photo_filters import (
@@ -51,7 +52,16 @@ def is_capture_image_file(path: Path) -> bool:
     return (
         path.is_file()
         and not path.name.startswith(".")
+        and not path.name.lower().endswith(".mp4.poster.jpg")
         and path.suffix.lower() in CAPTURE_SUFFIXES
+    )
+
+
+def is_video_poster_file(path: Path) -> bool:
+    return (
+        path.is_file()
+        and not path.name.startswith(".")
+        and path.name.lower().endswith(".mp4.poster.jpg")
     )
 
 
@@ -77,6 +87,21 @@ def get_capture_image_by_relative_path(
     except ValueError:
         return None
     if is_capture_image_file(candidate):
+        return candidate
+    return None
+
+
+def get_capture_media_by_relative_path(
+    project_root: Path, relative_path: str
+) -> Path | None:
+    root = captures_root(project_root)
+    decoded_relative = unquote(relative_path).lstrip("/")
+    candidate = (root / decoded_relative).resolve()
+    try:
+        candidate.relative_to(root.resolve())
+    except ValueError:
+        return None
+    if is_capture_image_file(candidate) or is_video_poster_file(candidate):
         return candidate
     return None
 
@@ -119,6 +144,11 @@ def build_capture_image(project_root: Path, image_path: Path) -> dict[str, objec
     stat = image_path.stat()
     metadata = read_capture_metadata(image_path)
     photo_filter = metadata.get("photo_filter")
+    poster_path = video_poster_path(image_path)
+    poster_url = None
+    if media_type_for(image_path) == "video" and poster_path.is_file():
+        poster_relative_path = poster_path.resolve().relative_to(root).as_posix()
+        poster_url = f"/image/captures/{quote(poster_relative_path)}"
     return {
         "filename": image_path.name,
         "relative_path": relative_path,
@@ -128,6 +158,7 @@ def build_capture_image(project_root: Path, image_path: Path) -> dict[str, objec
         "delete_url": f"/api/captures/{quote(relative_path)}",
         "modified_unix": stat.st_mtime,
         "size_bytes": stat.st_size,
+        "poster_url": poster_url,
         "photo_filter": photo_filter if isinstance(photo_filter, dict) else None,
     }
 
@@ -183,6 +214,8 @@ def delete_capture_image(
     deleted_path = image_path.relative_to(root).as_posix()
     deleted_name = image_path.name
     image_path.unlink()
+    if media_type_for(image_path) == "video":
+        video_poster_path(image_path).unlink(missing_ok=True)
     delete_capture_metadata(image_path)
     remove_empty_capture_dirs(project_root, image_path.parent)
     return {
@@ -1049,7 +1082,10 @@ def render_page(page_name: str = "home") -> bytes:
               preview.playsInline = true;
               preview.setAttribute("playsinline", "");
               preview.preload = "auto";
-              preview.src = previewSrc;
+              if (image.poster_url) {
+                preview.poster = `${image.poster_url}?v=${encodeURIComponent(image.modified_unix || "")}`;
+              }
+              preview.src = `${previewSrc}#t=0.001`;
               preview.addEventListener("error", () => renderMediaError(image), { once: true });
             } else {
               preview = document.createElement("img");
@@ -1630,7 +1666,7 @@ def build_handler(project_root: Path, port: int):
 
             if request_path.startswith("/image/captures/"):
                 relative_path = request_path[len("/image/captures/") :]
-                image_path = get_capture_image_by_relative_path(
+                image_path = get_capture_media_by_relative_path(
                     project_root, relative_path
                 )
                 if image_path is None:
@@ -1659,7 +1695,7 @@ def build_handler(project_root: Path, port: int):
                 return
             if request_path.startswith("/image/captures/"):
                 relative_path = request_path[len("/image/captures/") :]
-                image_path = get_capture_image_by_relative_path(
+                image_path = get_capture_media_by_relative_path(
                     project_root, relative_path
                 )
                 if image_path is None:

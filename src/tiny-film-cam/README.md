@@ -80,7 +80,9 @@ Video recording requires PyAV and ffmpeg on the Pi
 (`sudo apt install python3-av ffmpeg`) and only supports rotation 0 or 180.
 PyAV preserves camera timestamps when frames arrive late, then ffmpeg losslessly
 places the MP4 index at the front so recordings retain their real-world duration
-and play reliably in phone browsers.
+and play reliably in phone browsers. Each new video also gets a small
+`<video-name>.poster.jpg` preview for Safari; poster files stay out of the
+gallery and are removed with their video.
 
 Run the capture browser:
 

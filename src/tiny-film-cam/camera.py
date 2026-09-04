@@ -532,10 +532,19 @@ def _video_recording_path(output_path: Path) -> Path:
     return output_path.with_name(f".{output_path.name}.recording.mkv")
 
 
+def video_poster_path(output_path: Path) -> Path:
+    return output_path.with_name(f"{output_path.name}.poster.jpg")
+
+
 def _finalize_video(recording_path: Path, output_path: Path) -> None:
-    """Losslessly finalize timestamped H.264 as a browser-friendly MP4."""
+    """Finalize timestamped H.264 and create its Safari poster image."""
     finalizing_path = output_path.with_name(f".{output_path.name}.finalizing")
+    poster_path = video_poster_path(output_path)
+    poster_finalizing_path = output_path.with_name(
+        f".{output_path.name}.poster.finalizing.jpg"
+    )
     finalizing_path.unlink(missing_ok=True)
+    poster_finalizing_path.unlink(missing_ok=True)
 
     command = [
         "ffmpeg",
@@ -555,10 +564,22 @@ def _finalize_video(recording_path: Path, output_path: Path) -> None:
         "-f",
         "mp4",
         str(finalizing_path),
+        "-map",
+        "0:v:0",
+        "-frames:v",
+        "1",
+        "-q:v",
+        "3",
+        "-update",
+        "1",
+        "-f",
+        "image2",
+        str(poster_finalizing_path),
     ]
 
     try:
         subprocess.run(command, check=True, capture_output=True, text=True)
+        os.replace(poster_finalizing_path, poster_path)
         os.replace(finalizing_path, output_path)
     except FileNotFoundError as exc:
         raise CameraCaptureError(
@@ -572,6 +593,7 @@ def _finalize_video(recording_path: Path, output_path: Path) -> None:
         raise CameraCaptureError(message) from exc
     finally:
         finalizing_path.unlink(missing_ok=True)
+        poster_finalizing_path.unlink(missing_ok=True)
 
 
 def record_video(settings: VideoSettings = VideoSettings()) -> Path:

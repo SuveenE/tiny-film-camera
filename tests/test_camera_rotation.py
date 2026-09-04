@@ -127,7 +127,9 @@ class CameraRotationTest(unittest.TestCase):
             recording_path.write_bytes(b"matroska")
 
             def fake_run(command, **kwargs):
-                Path(command[-1]).write_bytes(b"mp4")
+                second_map = command.index("-map", command.index("-map") + 1)
+                Path(command[second_map - 1]).write_bytes(b"mp4")
+                Path(command[-1]).write_bytes(b"jpeg")
                 return None
 
             with patch.object(camera.subprocess, "run", side_effect=fake_run) as run:
@@ -135,10 +137,13 @@ class CameraRotationTest(unittest.TestCase):
 
             command = run.call_args.args[0]
             self.assertEqual(output_path.read_bytes(), b"mp4")
+            self.assertEqual(
+                camera.video_poster_path(output_path).read_bytes(), b"jpeg"
+            )
             self.assertIn("copy", command)
             self.assertIn("avc1", command)
             self.assertIn("+faststart", command)
-            self.assertEqual(command[-3:-1], ["-f", "mp4"])
+            self.assertIn("image2", command)
             self.assertEqual(
                 run.call_args.kwargs,
                 {"check": True, "capture_output": True, "text": True},
