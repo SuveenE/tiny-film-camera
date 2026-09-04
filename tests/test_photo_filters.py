@@ -39,10 +39,10 @@ class PhotoFiltersTest(unittest.TestCase):
         self.assertEqual(red, green)
         self.assertEqual(green, blue)
 
-    def test_cold_filter_reduces_red_and_raises_blue(self) -> None:
+    def test_cool_filter_reduces_red_and_raises_blue(self) -> None:
         image = Image.new("RGB", (1, 1), (100, 100, 100))
 
-        filtered = photo_filters.apply_photo_filter(image, "cold")
+        filtered = photo_filters.apply_photo_filter(image, "cool")
 
         red, green, blue = filtered.getpixel((0, 0))
         self.assertLess(red, green)
@@ -63,7 +63,7 @@ class PhotoFiltersTest(unittest.TestCase):
             status = photo_filters.photo_filter_status_from_cache(project_root)
 
         self.assertFalse(status["using_fallback"])
-        self.assertEqual(status["active_filter"]["id"], "cold")
+        self.assertEqual(status["active_filter"]["id"], "cool")
 
     def test_stale_or_unknown_switch_selection_falls_back_to_normal(self) -> None:
         with TemporaryDirectory() as tmpdir:
@@ -75,7 +75,7 @@ class PhotoFiltersTest(unittest.TestCase):
                     {
                         "ok": True,
                         "timestamp_unix": time.time() - 60,
-                        "selection": "cold",
+                        "selection": "cool",
                     }
                 ),
                 encoding="utf-8",
@@ -124,7 +124,7 @@ class PhotoFiltersTest(unittest.TestCase):
             )
             capture_path.parent.mkdir(parents=True)
             capture_path.write_bytes(b"jpeg")
-            capture_metadata.write_photo_filter_metadata(capture_path, "cold")
+            capture_metadata.write_photo_filter_metadata(capture_path, "cool")
 
             item = web.build_capture_image(project_root, capture_path)
             deleted = web.delete_capture_image(
@@ -132,7 +132,7 @@ class PhotoFiltersTest(unittest.TestCase):
                 "2026-08-07/photo.jpg",
             )
 
-        self.assertEqual(item["photo_filter"]["id"], "cold")
+        self.assertEqual(item["photo_filter"]["id"], "cool")
         self.assertEqual(deleted["relative_path"], "2026-08-07/photo.jpg")
         self.assertFalse(capture_metadata.metadata_path_for(capture_path).exists())
 
@@ -171,7 +171,7 @@ class PhotoFiltersTest(unittest.TestCase):
         self.assertIn("Current photo mode", page)
         self.assertIn('data-filter="black_and_white"', page)
         self.assertIn('data-filter="normal"', page)
-        self.assertIn('data-filter="cold"', page)
+        self.assertIn('data-filter="cool"', page)
         self.assertIn("option.dataset.filter === activeFilterId", page)
 
     def test_web_page_uses_a_stable_preview_and_multi_item_gallery(self) -> None:

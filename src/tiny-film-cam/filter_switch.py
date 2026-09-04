@@ -15,7 +15,7 @@ DEFAULT_CACHE_PATH = "data/filter-state.json"
 DEFAULT_STALE_SECONDS = 15.0
 DEFAULT_LEFT_SELECTION = "black_and_white"
 DEFAULT_CENTER_SELECTION = "normal"
-DEFAULT_RIGHT_SELECTION = "cold"
+DEFAULT_RIGHT_SELECTION = "cool"
 
 
 def env_int(name: str, default: int) -> int:

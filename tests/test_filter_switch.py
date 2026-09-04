@@ -44,7 +44,7 @@ class FilterSwitchTest(unittest.TestCase):
             {
                 "left": "black_and_white",
                 "center": "normal",
-                "right": "cold",
+                "right": "cool",
             },
         )
 
@@ -52,7 +52,7 @@ class FilterSwitchTest(unittest.TestCase):
         with patch.dict(
             "os.environ",
             {
-                "TINY_FILM_FILTER_LEFT": "cold",
+                "TINY_FILM_FILTER_LEFT": "cool",
                 "TINY_FILM_FILTER_CENTER": "normal",
                 "TINY_FILM_FILTER_RIGHT": "black_and_white",
             },
@@ -64,7 +64,7 @@ class FilterSwitchTest(unittest.TestCase):
             )
 
         self.assertEqual(payload["position"], "left")
-        self.assertEqual(payload["selection"], "cold")
+        self.assertEqual(payload["selection"], "cool")
 
     def test_both_grounded_is_an_invalid_state(self) -> None:
         payload = filter_switch.build_filter_state(
@@ -104,7 +104,7 @@ class FilterSwitchTest(unittest.TestCase):
                         "ok": True,
                         "timestamp_unix": time.time() - 60,
                         "position": "right",
-                        "selection": "cold",
+                        "selection": "cool",
                     }
                 ),
                 encoding="utf-8",

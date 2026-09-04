@@ -82,7 +82,7 @@ class CameraRotationTest(unittest.TestCase):
                 "TINY_FILM_CAPTURE_BRACKET_SETTLE_SECONDS": "0.4",
                 "TINY_FILM_CAPTURE_AWB_MODE": "cloudy",
                 "TINY_FILM_CAPTURE_AWB_LOCK": "1",
-                "TINY_FILM_CAPTURE_FILTER": "cold",
+                "TINY_FILM_CAPTURE_FILTER": "cool",
             },
             clear=True,
         ):
@@ -93,7 +93,7 @@ class CameraRotationTest(unittest.TestCase):
         self.assertEqual(settings.bracket_settle_seconds, 0.4)
         self.assertEqual(settings.awb_mode, "cloudy")
         self.assertTrue(settings.awb_lock)
-        self.assertEqual(settings.photo_filter, "cold")
+        self.assertEqual(settings.photo_filter, "cool")
 
     def test_bracket_output_paths_include_ev_suffixes(self) -> None:
         settings = camera.CaptureSettings(
