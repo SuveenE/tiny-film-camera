@@ -112,7 +112,7 @@ class CameraRotationTest(unittest.TestCase):
                 "Sharpness": 0.3,
                 "Contrast": 0.85,
                 "Saturation": 0.9,
-                "ExposureValue": -0.7,
+                "ExposureValue": -0.3,
                 "FrameRate": 15.0,
             },
             transform=None,
@@ -190,9 +190,9 @@ class CameraRotationTest(unittest.TestCase):
         self.assertEqual(settings.sharpness, 0.3)
         self.assertEqual(settings.contrast, 0.85)
         self.assertEqual(settings.saturation, 0.9)
-        self.assertEqual(settings.exposure_value, -0.7)
-        self.assertEqual(settings.awb_mode, "daylight")
-        self.assertFalse(settings.awb_lock)
+        self.assertEqual(settings.exposure_value, -0.3)
+        self.assertEqual(settings.awb_mode, "auto")
+        self.assertTrue(settings.awb_lock)
         self.assertEqual(settings.photo_filter, "normal")
 
     def test_capture_settings_reads_film_source_controls_from_env(self) -> None:

@@ -23,7 +23,7 @@ PHOTO_FILTER_DETAILS: dict[PhotoFilterName, dict[str, object]] = {
     "cool": {
         "id": "cool",
         "label": "Cool",
-        "version": 2,
+        "version": 3,
     },
 }
 
@@ -65,20 +65,51 @@ def _scaled_lut(multiplier: float) -> list[int]:
     return [max(0, min(255, round(value * multiplier))) for value in range(256)]
 
 
-def _mask_lut(start: int, end: int, *, invert: bool = False) -> list[int]:
-    """Build a smooth luminance mask without requiring NumPy on the camera."""
-    values = []
-    for value in range(256):
-        position = max(0.0, min(1.0, (value - start) / (end - start)))
-        smooth = position * position * (3.0 - 2.0 * position)
-        if invert:
-            smooth = 1.0 - smooth
-        values.append(round(smooth * 255))
-    return values
+def _smoothstep(edge0: float, edge1: float, value: float) -> float:
+    position = max(0.0, min(1.0, (value - edge0) / (edge1 - edge0)))
+    return position * position * (3.0 - 2.0 * position)
 
 
-def _scaled_mask(mask, amount: float):
-    return mask.point(_scaled_lut(amount))
+_COOL_FILTER_LUT = None
+
+
+def _cool_filter_lut():
+    """Return a cached, Pi-friendly cyan/teal and warm-cream 3D color LUT."""
+    global _COOL_FILTER_LUT
+    if _COOL_FILTER_LUT is not None:
+        return _COOL_FILTER_LUT
+
+    from PIL import ImageFilter
+
+    def grade(red: float, green: float, blue: float):
+        luminance = 0.2126 * red + 0.7152 * green + 0.0722 * blue
+
+        # Filmic contrast and restrained saturation form the pastel base.
+        red = (red - 0.48) * 1.14 + 0.48
+        green = (green - 0.48) * 1.14 + 0.48
+        blue = (blue - 0.48) * 1.14 + 0.48
+        red = luminance + (red - luminance) * 1.08
+        green = luminance + (green - luminance) * 1.08
+        blue = luminance + (blue - luminance) * 1.08
+
+        shadows = 1.0 - _smoothstep(0.16, 0.58, luminance)
+        midtones = _smoothstep(0.10, 0.45, luminance) * (
+            1.0 - _smoothstep(0.68, 0.96, luminance)
+        )
+        highlights = _smoothstep(0.46, 0.88, luminance)
+
+        # Keep orange, tan, and skin-like colors warm while neutral surfaces,
+        # greens, and blues receive the stronger Asteroid City-style cyan cast.
+        warm_color = _smoothstep(0.035, 0.18, red - blue)
+        cyan = midtones * (1.0 - 0.78 * warm_color)
+
+        red += -0.060 * shadows - 0.042 * cyan + 0.110 * highlights
+        green += 0.030 * shadows + 0.032 * cyan + 0.036 * highlights
+        blue += 0.072 * shadows + 0.070 * cyan - 0.045 * highlights
+        return red, green, blue
+
+    _COOL_FILTER_LUT = ImageFilter.Color3DLUT.generate(17, grade)
+    return _COOL_FILTER_LUT
 
 
 def apply_photo_filter(image, name: PhotoFilterName):
@@ -86,34 +117,11 @@ def apply_photo_filter(image, name: PhotoFilterName):
     if name == "normal":
         return image
 
-    from PIL import Image, ImageChops, ImageEnhance, ImageFilter, ImageOps
+    from PIL import ImageEnhance, ImageOps
 
     rgb_image = image.convert("RGB")
     if name == "black_and_white":
         grayscale = ImageOps.grayscale(rgb_image)
         return ImageEnhance.Contrast(grayscale).enhance(1.08).convert("RGB")
 
-    # A portable Pillow version of the golden-hour teal-and-amber grade. Keep
-    # this filter dependency-light because it runs directly on the camera Pi.
-    graded = ImageEnhance.Contrast(rgb_image).enhance(1.18)
-    graded = graded.point(_scaled_lut(1.0 / 0.96) * 3)
-    graded = ImageEnhance.Color(graded).enhance(1.14)
-
-    luminance = ImageOps.grayscale(graded)
-    shadow_mask = luminance.point(_mask_lut(36, 148, invert=True))
-    highlight_mask = luminance.point(_mask_lut(96, 232))
-
-    red, green, blue = graded.split()
-
-    # Teal shadows.
-    red = ImageChops.subtract(red, _scaled_mask(shadow_mask, 0.050))
-    green = ImageChops.add(green, _scaled_mask(shadow_mask, 0.020))
-    blue = ImageChops.add(blue, _scaled_mask(shadow_mask, 0.042))
-
-    # Amber/golden highlights.
-    red = ImageChops.add(red, _scaled_mask(highlight_mask, 0.100))
-    green = ImageChops.add(green, _scaled_mask(highlight_mask, 0.044))
-    blue = ImageChops.subtract(blue, _scaled_mask(highlight_mask, 0.050))
-
-    graded = Image.merge("RGB", (red, green, blue))
-    return graded.filter(ImageFilter.UnsharpMask(radius=1.15, percent=32, threshold=3))
+    return rgb_image.filter(_cool_filter_lut())

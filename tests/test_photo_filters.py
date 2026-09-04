@@ -58,7 +58,7 @@ class PhotoFiltersTest(unittest.TestCase):
         self.assertGreater(green, blue)
 
     def test_cool_filter_metadata_version_tracks_new_grade(self) -> None:
-        self.assertEqual(photo_filters.photo_filter_details("cool")["version"], 2)
+        self.assertEqual(photo_filters.photo_filter_details("cool")["version"], 3)
 
     def test_fresh_switch_selection_is_used(self) -> None:
         with TemporaryDirectory() as tmpdir:
