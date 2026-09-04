@@ -56,6 +56,14 @@ class RenderPageTest(unittest.TestCase):
         self.assertIn('href="/" id="back-button"', page)
         self.assertIn("Gallery · Suv's Tiny Film Camera", page)
 
+    def test_gallery_only_loads_the_first_three_thumbnails_automatically(self) -> None:
+        page = web.render_page("gallery").decode("utf-8")
+
+        self.assertIn("const INITIAL_THUMBNAIL_LIMIT = 3", page)
+        self.assertIn("index < INITIAL_THUMBNAIL_LIMIT", page)
+        self.assertIn('loadPrompt.className = "gallery-load"', page)
+        self.assertIn("loadThumbnail();", page)
+
 
 class CaptureListLimitTest(unittest.TestCase):
     def test_parses_and_caps_positive_gallery_limits(self) -> None:
