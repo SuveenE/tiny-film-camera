@@ -105,7 +105,7 @@ class CameraRotationTest(unittest.TestCase):
         h264_encoder.assert_called_once_with()
         recording_path = output_path.with_name(f".{output_path.name}.recording.mkv")
         pyav_output.assert_called_once_with(str(recording_path))
-        finalize_video.assert_called_once_with(recording_path, output_path)
+        finalize_video.assert_called_once_with(recording_path, output_path, 15, None)
         picam2.create_video_configuration.assert_called_once_with(
             main={"size": (1280, 720), "format": "YUV420"},
             controls={
@@ -120,7 +120,7 @@ class CameraRotationTest(unittest.TestCase):
         picam2.start_recording.assert_called_once_with(encoder, output)
         sleep.assert_called_once_with(10)
 
-    def test_video_finalization_copies_h264_into_fast_start_mp4(self) -> None:
+    def test_video_finalization_transcodes_safari_compatible_h264(self) -> None:
         with TemporaryDirectory() as temporary_directory:
             recording_path = Path(temporary_directory) / "recording.mkv"
             output_path = Path(temporary_directory) / "clip.mp4"
@@ -133,14 +133,23 @@ class CameraRotationTest(unittest.TestCase):
                 return None
 
             with patch.object(camera.subprocess, "run", side_effect=fake_run) as run:
-                camera._finalize_video(recording_path, output_path)
+                camera._finalize_video(recording_path, output_path, 15)
 
             command = run.call_args.args[0]
             self.assertEqual(output_path.read_bytes(), b"mp4")
             self.assertEqual(
                 camera.video_poster_path(output_path).read_bytes(), b"jpeg"
             )
-            self.assertIn("copy", command)
+            self.assertNotIn("copy", command)
+            self.assertIn("libx264", command)
+            self.assertIn("ultrafast", command)
+            self.assertIn("baseline", command)
+            self.assertIn("3.1", command)
+            video_filter = command[command.index("-vf") + 1]
+            self.assertIn("fps=15", video_filter)
+            self.assertIn("setparams=range=limited", video_filter)
+            self.assertIn("yuv420p", command)
+            self.assertIn("bt709", command)
             self.assertIn("avc1", command)
             self.assertIn("+faststart", command)
             self.assertIn("image2", command)
@@ -148,6 +157,25 @@ class CameraRotationTest(unittest.TestCase):
                 run.call_args.kwargs,
                 {"check": True, "capture_output": True, "text": True},
             )
+
+    def test_video_finalization_preserves_requested_bitrate(self) -> None:
+        with TemporaryDirectory() as temporary_directory:
+            recording_path = Path(temporary_directory) / "recording.mkv"
+            output_path = Path(temporary_directory) / "clip.mp4"
+            recording_path.write_bytes(b"matroska")
+
+            def fake_run(command, **kwargs):
+                second_map = command.index("-map", command.index("-map") + 1)
+                Path(command[second_map - 1]).write_bytes(b"mp4")
+                Path(command[-1]).write_bytes(b"jpeg")
+                return None
+
+            with patch.object(camera.subprocess, "run", side_effect=fake_run) as run:
+                camera._finalize_video(recording_path, output_path, 15, 4_000_000)
+
+            command = run.call_args.args[0]
+            bitrate_option = command.index("-b:v")
+            self.assertEqual(command[bitrate_option + 1], "4000000")
 
     def test_capture_settings_default_rotation_is_180(self) -> None:
         with patch.dict("os.environ", {}, clear=True):

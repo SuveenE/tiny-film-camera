@@ -536,8 +536,13 @@ def video_poster_path(output_path: Path) -> Path:
     return output_path.with_name(f"{output_path.name}.poster.jpg")
 
 
-def _finalize_video(recording_path: Path, output_path: Path) -> None:
-    """Finalize timestamped H.264 and create its Safari poster image."""
+def _finalize_video(
+    recording_path: Path,
+    output_path: Path,
+    fps: int,
+    bitrate: int | None = None,
+) -> None:
+    """Create a Safari-compatible CFR H.264 MP4 and its poster image."""
     finalizing_path = output_path.with_name(f".{output_path.name}.finalizing")
     poster_path = video_poster_path(output_path)
     poster_finalizing_path = output_path.with_name(
@@ -546,6 +551,7 @@ def _finalize_video(recording_path: Path, output_path: Path) -> None:
     finalizing_path.unlink(missing_ok=True)
     poster_finalizing_path.unlink(missing_ok=True)
 
+    rate_control = ["-b:v", str(bitrate)] if bitrate is not None else []
     command = [
         "ffmpeg",
         "-y",
@@ -555,8 +561,37 @@ def _finalize_video(recording_path: Path, output_path: Path) -> None:
         str(recording_path),
         "-map",
         "0:v:0",
+        "-an",
+        "-vf",
+        (
+            f"fps={fps},setparams=range=limited:color_primaries=bt709:"
+            "color_trc=bt709:colorspace=bt709"
+        ),
         "-c:v",
-        "copy",
+        "libx264",
+        "-preset",
+        "ultrafast",
+        "-profile:v",
+        "baseline",
+        "-level:v",
+        "3.1",
+        "-pix_fmt",
+        "yuv420p",
+        "-g",
+        str(fps * 2),
+        "-keyint_min",
+        str(fps * 2),
+        "-sc_threshold",
+        "0",
+        "-color_range",
+        "tv",
+        "-colorspace",
+        "bt709",
+        "-color_trc",
+        "bt709",
+        "-color_primaries",
+        "bt709",
+        *rate_control,
         "-tag:v",
         "avc1",
         "-movflags",
@@ -619,6 +654,8 @@ def record_video(settings: VideoSettings = VideoSettings()) -> Path:
 
     if settings.duration_seconds <= 0:
         raise CameraCaptureError("Video duration must be greater than 0 seconds.")
+    if settings.fps <= 0:
+        raise CameraCaptureError("Video FPS must be greater than 0.")
     if settings.rotation not in VIDEO_ONLY_ROTATIONS:
         raise CameraCaptureError(
             f"Video recording only supports rotation 0 or 180. Got {settings.rotation}."
@@ -627,8 +664,7 @@ def record_video(settings: VideoSettings = VideoSettings()) -> Path:
     with _locked_camera(settings.output_dir.expanduser()):
         picam2 = _open_camera(Picamera2)
         controls = _camera_controls(settings)
-        if settings.fps > 0:
-            controls["FrameRate"] = float(settings.fps)
+        controls["FrameRate"] = float(settings.fps)
 
         config = picam2.create_video_configuration(
             main={
@@ -664,7 +700,12 @@ def record_video(settings: VideoSettings = VideoSettings()) -> Path:
                     picam2.stop()
                 picam2.close()
 
-            _finalize_video(recording_path, output_path)
+            _finalize_video(
+                recording_path,
+                output_path,
+                settings.fps,
+                settings.bitrate,
+            )
         finally:
             recording_path.unlink(missing_ok=True)
 
