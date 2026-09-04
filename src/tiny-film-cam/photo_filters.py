@@ -6,9 +6,9 @@ from typing import Literal, cast
 from filter_switch import filter_status_from_cache
 
 
-PhotoFilterName = Literal["black_and_white", "normal", "cold"]
+PhotoFilterName = Literal["black_and_white", "normal", "cool"]
 DEFAULT_PHOTO_FILTER: PhotoFilterName = "normal"
-PHOTO_FILTER_NAMES = ("black_and_white", "normal", "cold")
+PHOTO_FILTER_NAMES = ("black_and_white", "normal", "cool")
 PHOTO_FILTER_DETAILS: dict[PhotoFilterName, dict[str, object]] = {
     "black_and_white": {
         "id": "black_and_white",
@@ -20,9 +20,9 @@ PHOTO_FILTER_DETAILS: dict[PhotoFilterName, dict[str, object]] = {
         "label": "Normal",
         "version": 1,
     },
-    "cold": {
-        "id": "cold",
-        "label": "Cold",
+    "cool": {
+        "id": "cool",
+        "label": "Cool",
         "version": 1,
     },
 }

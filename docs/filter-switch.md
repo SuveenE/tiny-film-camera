@@ -1,6 +1,6 @@
 # Set up the photo-filter switch
 
-The SS23D32 switch selects **Black & white**, **Normal**, or **Cold** for new
+The SS23D32 switch selects **Black & white**, **Normal**, or **Cool** for new
 photos. Videos are unchanged.
 
 The filter service is the only process that reads the switch GPIO pins. It
@@ -52,15 +52,15 @@ Move the switch through all three positions. The expected readings are:
 | --- | --- | --- |
 | LOW | HIGH | Black & white |
 | HIGH | HIGH | Normal |
-| HIGH | LOW | Cold |
+| HIGH | LOW | Cool |
 
 Press `Ctrl+C` when finished. `LOW / LOW` indicates incorrect wiring.
 
-If Black & white and Cold are physically reversed, add this to `.env` rather
+If Black & white and Cool are physically reversed, add this to `.env` rather
 than resoldering:
 
 ```dotenv
-TINY_FILM_FILTER_LEFT=cold
+TINY_FILM_FILTER_LEFT=cool
 TINY_FILM_FILTER_RIGHT=black_and_white
 ```
 

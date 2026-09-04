@@ -30,7 +30,7 @@ The slider positions select:
 | --- | --- |
 | GPIO 26 connected to GND | Black & white |
 | Neither outer terminal connected to GND | Normal |
-| GPIO 20 connected to GND | Cold |
+| GPIO 20 connected to GND | Cool |
 
 ## Passive buzzer
 

@@ -491,7 +491,7 @@ def render_page(page_name: str = "home") -> bytes:
             background: #ffe1a0;
             color: #9a5d00;
           }
-          [data-filter="cold"] .mode-icon {
+          [data-filter="cool"] .mode-icon {
             background: #dce9ff;
             color: #285ba9;
           }
@@ -832,11 +832,11 @@ def render_page(page_name: str = "home") -> bytes:
                   </span>
                   <span>Normal</span>
                 </div>
-                <div class="mode-option" data-filter="cold" role="listitem">
+                <div class="mode-option" data-filter="cool" role="listitem">
                   <span class="mode-icon">
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v20M4 6l16 12M20 6 4 18M8.5 4 12 6l3.5-2M8.5 20l3.5-2 3.5 2M3.5 10 7 12l-3.5 2M20.5 10 17 12l3.5 2"></path></svg>
                   </span>
-                  <span>Cold</span>
+                  <span>Cool</span>
                 </div>
               </div>
             </div>
