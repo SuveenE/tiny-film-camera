@@ -103,6 +103,11 @@ def parse_args() -> argparse.Namespace:
         help="Let AWB settle during warmup, then lock it before capture.",
     )
     parser.add_argument(
+        "--keep-original",
+        action="store_true",
+        help="Also save the same ungraded frame as a lossless .original.png for regrading.",
+    )
+    parser.add_argument(
         "--photo-filter",
         choices=PHOTO_FILTER_NAMES,
         default=DEFAULT_PHOTO_FILTER,
@@ -132,6 +137,7 @@ def main() -> None:
         awb_mode=args.awb_mode,
         awb_lock=args.awb_lock,
         photo_filter=args.photo_filter,
+        keep_original=args.keep_original,
     )
     output_paths = capture_photos(settings)
     for output_path in output_paths:

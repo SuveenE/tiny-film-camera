@@ -106,3 +106,6 @@ The web app serves captures from `data/captures/` and exposes:
 - `GET /api/battery`
 - `GET /api/filter`
 - `GET /latest-image`
+
+For the Wes-inspired cream/cyan filter, real-photo comparisons, and capture or
+post-processing commands, see [Wes filter](../../docs/wes-anderson-filter.md).

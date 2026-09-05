@@ -39,14 +39,14 @@ class PhotoFiltersTest(unittest.TestCase):
         self.assertEqual(red, green)
         self.assertEqual(green, blue)
 
-    def test_cool_filter_adds_teal_to_shadows(self) -> None:
+    def test_cool_filter_adds_warm_cream_to_neutrals(self) -> None:
         image = Image.new("RGB", (1, 1), (60, 60, 60))
 
         filtered = photo_filters.apply_photo_filter(image, "cool")
 
         red, green, blue = filtered.getpixel((0, 0))
-        self.assertLess(red, green)
-        self.assertGreater(blue, green)
+        self.assertGreater(red, green)
+        self.assertGreater(green, blue)
 
     def test_cool_filter_adds_gold_to_highlights(self) -> None:
         image = Image.new("RGB", (1, 1), (210, 210, 210))
@@ -58,7 +58,25 @@ class PhotoFiltersTest(unittest.TestCase):
         self.assertGreater(green, blue)
 
     def test_cool_filter_metadata_version_tracks_new_grade(self) -> None:
-        self.assertEqual(photo_filters.photo_filter_details("cool")["version"], 3)
+        self.assertEqual(photo_filters.photo_filter_details("cool")["version"], 4)
+
+    def test_cool_switch_uses_the_same_pixels_as_wes_anderson(self) -> None:
+        image = Image.new("RGB", (6, 1))
+        image.putdata([(0, 0, 0), (255, 255, 255), (60, 60, 60),
+                       (100, 140, 190), (150, 95, 45), (45, 170, 80)])
+        with TemporaryDirectory() as tmpdir:
+            project_root = Path(tmpdir)
+            with patch.dict("os.environ", {"TINY_FILM_FILTER_RIGHT": "cool"}):
+                filter_switch.write_filter_cache(
+                    project_root / "data" / "filter-state.json",
+                    filter_switch.build_filter_state(left_grounded=False, right_grounded=True),
+                )
+            selected = photo_filters.selected_photo_filter_from_cache(project_root)
+        self.assertEqual(selected, "cool")
+        self.assertEqual(
+            photo_filters.apply_photo_filter(image, selected).tobytes(),
+            photo_filters.apply_photo_filter(image, "wes_anderson").tobytes(),
+        )
 
     def test_fresh_switch_selection_is_used(self) -> None:
         with TemporaryDirectory() as tmpdir:

@@ -101,6 +101,7 @@ class CaptureSettings:
     awb_mode: AwbMode = DEFAULT_AWB_MODE
     awb_lock: bool = DEFAULT_AWB_LOCK
     photo_filter: PhotoFilterName = DEFAULT_PHOTO_FILTER
+    keep_original: bool = False
 
 
 @dataclass(frozen=True)
@@ -418,7 +419,13 @@ def _capture_and_save_image(
     if on_captured is not None:
         on_captured()
     image = _image_from_picamera_frame(frame)
+    del frame  # Release the full sensor array before allocating graded pixels.
     image = _rotate_image(image, settings.rotation)
+    if settings.keep_original:
+        # Lossless, ungraded ISP output from this exact frame (not sensor RAW).
+        original_path = output_path.with_name(f"{output_path.stem}.original.png")
+        image.save(original_path, format="PNG")
+        write_photo_filter_metadata(original_path, "normal")
     image = apply_photo_filter(image, settings.photo_filter)
     image.save(
         output_path,
@@ -464,6 +471,16 @@ def capture_photos(
         exposure_values = _exposure_values(settings)
         started = False
 
+        def frame_captured() -> None:
+            nonlocal started
+            if on_captured is not None:
+                on_captured()
+            if len(exposure_values) == 1:
+                # capture_array owns its pixels. Stop streaming before slow
+                # PNG/LUT work on the memory-constrained Pi Zero.
+                picam2.stop()
+                started = False
+
         try:
             picam2.configure(config)
             picam2.start()
@@ -487,7 +504,7 @@ def capture_photos(
                     picam2,
                     settings,
                     output_path,
-                    on_captured,
+                    frame_captured,
                 )
         finally:
             if started:
