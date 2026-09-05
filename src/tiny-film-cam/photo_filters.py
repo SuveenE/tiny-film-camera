@@ -6,10 +6,20 @@ from typing import Literal, cast
 from filter_switch import filter_status_from_cache
 
 
-PhotoFilterName = Literal["black_and_white", "normal", "cool"]
+PhotoFilterName = Literal["black_and_white", "normal", "cool", "wes_anderson", "wes_rose"]
 DEFAULT_PHOTO_FILTER: PhotoFilterName = "normal"
-PHOTO_FILTER_NAMES = ("black_and_white", "normal", "cool")
+PHOTO_FILTER_NAMES = ("black_and_white", "normal", "cool", "wes_anderson", "wes_rose")
 PHOTO_FILTER_DETAILS: dict[PhotoFilterName, dict[str, object]] = {
+    "wes_anderson": {
+        "id": "wes_anderson",
+        "label": "Wes · Desert pastels",
+        "version": 1,
+    },
+    "wes_rose": {
+        "id": "wes_rose",
+        "label": "Wes · Rose pastels",
+        "version": 1,
+    },
     "black_and_white": {
         "id": "black_and_white",
         "label": "Black & white",
@@ -114,14 +124,21 @@ def _cool_filter_lut():
 
 def apply_photo_filter(image, name: PhotoFilterName):
     """Apply a lightweight, versioned photo look to a Pillow image."""
+    if name not in PHOTO_FILTER_NAMES:
+        raise ValueError(f"Unknown photo filter: {name}")
     if name == "normal":
         return image
 
     from PIL import ImageEnhance, ImageOps
 
-    rgb_image = image.convert("RGB")
+    rgb_image = image if image.mode == "RGB" else image.convert("RGB")
     if name == "black_and_white":
         grayscale = ImageOps.grayscale(rgb_image)
         return ImageEnhance.Contrast(grayscale).enhance(1.08).convert("RGB")
+
+    if name in {"wes_anderson", "wes_rose"}:
+        from wes_palette import wes_lut
+
+        return rgb_image.filter(wes_lut("rose" if name == "wes_rose" else "desert"))
 
     return rgb_image.filter(_cool_filter_lut())
