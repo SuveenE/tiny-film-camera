@@ -61,13 +61,17 @@ are identical. JPEG files can differ if encoder settings differ.
 
 ## Physical switch
 
-The CLI filter is installed on the Pi. Existing hardware switch mappings were
-left in place. To assign this look to the right position later, set
-`TINY_FILM_FILTER_RIGHT=wes_anderson` in the Pi's `.env` and restart the filter,
-shutter, and web services. Set capture contrast/saturation to 1, EV to 0, and
-warmup to 4 in `.env` to reproduce the baseline above. The gallery understands
-the new metadata labels; its three fixed mode badges still list the original
-switch defaults. The CLI is the tested selection path for this experiment.
+The existing **Cool** toggle now applies the same cream-and-cyan LUT as
+`wes_anderson`. Keep `TINY_FILM_FILTER_RIGHT=cool` in `.env`; the selection ID
+and mode badge remain `cool`. New Cool photos record **Cool · Wes pastels**,
+version 4, so their metadata distinguishes this grade from earlier Cool photos.
+`--photo-filter cool` and `--photo-filter wes_anderson` produce identical pixels.
+
+After deploying, restart the shutter and web services to load the new filter.
+No switch environment changes are needed. The same LUT also works when `cool`
+is selected through `TINY_FILM_CAPTURE_FILTER`. Capture contrast/saturation 1,
+EV 0, and warmup 4 reproduce the experimental baseline above; exposure and white
+balance still depend on scene lighting.
 
 ## Experiment: 5 September 2026
 

@@ -32,8 +32,8 @@ PHOTO_FILTER_DETAILS: dict[PhotoFilterName, dict[str, object]] = {
     },
     "cool": {
         "id": "cool",
-        "label": "Cool",
-        "version": 3,
+        "label": "Cool · Wes pastels",
+        "version": 4,
     },
 }
 
@@ -71,56 +71,6 @@ def selected_photo_filter_from_cache(project_root: Path) -> PhotoFilterName:
     return normalize_photo_filter(active_filter.get("id"))
 
 
-def _scaled_lut(multiplier: float) -> list[int]:
-    return [max(0, min(255, round(value * multiplier))) for value in range(256)]
-
-
-def _smoothstep(edge0: float, edge1: float, value: float) -> float:
-    position = max(0.0, min(1.0, (value - edge0) / (edge1 - edge0)))
-    return position * position * (3.0 - 2.0 * position)
-
-
-_COOL_FILTER_LUT = None
-
-
-def _cool_filter_lut():
-    """Return a cached, Pi-friendly cyan/teal and warm-cream 3D color LUT."""
-    global _COOL_FILTER_LUT
-    if _COOL_FILTER_LUT is not None:
-        return _COOL_FILTER_LUT
-
-    from PIL import ImageFilter
-
-    def grade(red: float, green: float, blue: float):
-        luminance = 0.2126 * red + 0.7152 * green + 0.0722 * blue
-
-        # Filmic contrast and restrained saturation form the pastel base.
-        red = (red - 0.48) * 1.14 + 0.48
-        green = (green - 0.48) * 1.14 + 0.48
-        blue = (blue - 0.48) * 1.14 + 0.48
-        red = luminance + (red - luminance) * 1.08
-        green = luminance + (green - luminance) * 1.08
-        blue = luminance + (blue - luminance) * 1.08
-
-        shadows = 1.0 - _smoothstep(0.16, 0.58, luminance)
-        midtones = _smoothstep(0.10, 0.45, luminance) * (
-            1.0 - _smoothstep(0.68, 0.96, luminance)
-        )
-        highlights = _smoothstep(0.46, 0.88, luminance)
-
-        # Keep orange, tan, and skin-like colors warm while neutral surfaces,
-        # greens, and blues receive the stronger Asteroid City-style cyan cast.
-        warm_color = _smoothstep(0.035, 0.18, red - blue)
-        cyan = midtones * (1.0 - 0.78 * warm_color)
-
-        red += -0.060 * shadows - 0.042 * cyan + 0.110 * highlights
-        green += 0.030 * shadows + 0.032 * cyan + 0.036 * highlights
-        blue += 0.072 * shadows + 0.070 * cyan - 0.045 * highlights
-        return red, green, blue
-
-    _COOL_FILTER_LUT = ImageFilter.Color3DLUT.generate(17, grade)
-    return _COOL_FILTER_LUT
-
 
 def apply_photo_filter(image, name: PhotoFilterName):
     """Apply a lightweight, versioned photo look to a Pillow image."""
@@ -136,9 +86,7 @@ def apply_photo_filter(image, name: PhotoFilterName):
         grayscale = ImageOps.grayscale(rgb_image)
         return ImageEnhance.Contrast(grayscale).enhance(1.08).convert("RGB")
 
-    if name in {"wes_anderson", "wes_rose"}:
-        from wes_palette import wes_lut
+    # Keep the existing switch/environment ID while using the Wes desert look.
+    from wes_palette import wes_lut
 
-        return rgb_image.filter(wes_lut("rose" if name == "wes_rose" else "desert"))
-
-    return rgb_image.filter(_cool_filter_lut())
+    return rgb_image.filter(wes_lut("rose" if name == "wes_rose" else "desert"))
