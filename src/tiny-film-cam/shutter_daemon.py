@@ -429,17 +429,17 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--contrast",
         type=float,
-        default=capture_defaults.contrast,
+        help="Override the selected photo filter's contrast.",
     )
     parser.add_argument(
         "--saturation",
         type=float,
-        default=capture_defaults.saturation,
+        help="Override the selected photo filter's saturation.",
     )
     parser.add_argument(
         "--ev",
         type=float,
-        default=capture_defaults.exposure_value,
+        help="Override the selected photo filter's exposure compensation.",
     )
     parser.add_argument(
         "--exposure-brackets",
@@ -461,7 +461,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--warmup-seconds",
         type=float,
-        default=capture_defaults.warmup_seconds,
+        help="Override the selected photo filter's exposure/AWB warmup.",
     )
     parser.add_argument(
         "--focus-mode",
@@ -487,6 +487,12 @@ def parse_args() -> argparse.Namespace:
         "--no-awb-lock",
         dest="awb_lock",
         action="store_false",
+    )
+    parser.set_defaults(
+        video_contrast=video_defaults.contrast,
+        video_saturation=video_defaults.saturation,
+        video_exposure_value=video_defaults.exposure_value,
+        video_warmup_seconds=video_defaults.warmup_seconds,
     )
     return parser.parse_args()
 
@@ -568,11 +574,23 @@ def main() -> None:
                 fps=args.video_fps,
                 duration_seconds=args.video_duration,
                 sharpness=args.sharpness,
-                contrast=args.contrast,
-                saturation=args.saturation,
-                exposure_value=args.ev,
+                contrast=(
+                    args.video_contrast if args.contrast is None else args.contrast
+                ),
+                saturation=(
+                    args.video_saturation
+                    if args.saturation is None
+                    else args.saturation
+                ),
+                exposure_value=(
+                    args.video_exposure_value if args.ev is None else args.ev
+                ),
                 rotation=args.rotation,
-                warmup_seconds=args.warmup_seconds,
+                warmup_seconds=(
+                    args.video_warmup_seconds
+                    if args.warmup_seconds is None
+                    else args.warmup_seconds
+                ),
                 focus_mode=args.focus_mode,
                 lens_position=args.lens_position,
                 awb_mode=args.awb_mode,
