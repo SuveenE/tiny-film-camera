@@ -1404,8 +1404,52 @@ def render_page(page_name: str = "home") -> bytes:
             }
           }
 
+          let recordingAudioContext = null;
+
+          function prepareRecordingSound() {
+            // Unlock audio during the Record tap, before the network request.
+            try {
+              const AudioContext = window.AudioContext || window.webkitAudioContext;
+              if (!AudioContext) return;
+              if (!recordingAudioContext || recordingAudioContext.state === "closed") {
+                recordingAudioContext = new AudioContext();
+              }
+              recordingAudioContext.resume().catch(() => {});
+            } catch (_) {
+              // Sound is optional; recording still works without browser audio.
+            }
+          }
+
+          function playRecordingSavedSound() {
+            try {
+              const context = recordingAudioContext;
+              if (!context || context.state !== "running") return;
+              const start = context.currentTime;
+              [880, 660].forEach((frequency, index) => {
+                const oscillator = context.createOscillator();
+                const gain = context.createGain();
+                const time = start + index * 0.18;
+                oscillator.frequency.value = frequency;
+                gain.gain.setValueAtTime(0, time);
+                gain.gain.linearRampToValueAtTime(0.18, time + 0.01);
+                gain.gain.linearRampToValueAtTime(0, time + 0.13);
+                oscillator.connect(gain);
+                gain.connect(context.destination);
+                oscillator.onended = () => {
+                  oscillator.disconnect();
+                  gain.disconnect();
+                };
+                oscillator.start(time);
+                oscillator.stop(time + 0.14);
+              });
+            } catch (_) {
+              // Audio failure must not turn a saved recording into an error.
+            }
+          }
+
           async function recordVideo() {
             if (recordButton.disabled) return;
+            prepareRecordingSound();
             const wasCaptureDisabled = captureButton.disabled;
             recordButton.disabled = true;
             captureButton.disabled = true;
@@ -1420,10 +1464,13 @@ def render_page(page_name: str = "home") -> bytes:
               if (!response.ok) {
                 throw new Error(data.error || "Recording failed");
               }
-              await refreshImages({ selectLatest: true });
-              await refreshDetails();
               const savedPath = data.image && data.image.relative_path ? data.image.relative_path : "video";
-              statusElement.textContent = `Saved ${savedPath}`;
+              statusElement.textContent = `Saved ${savedPath} — ready to record again`;
+              recordButton.disabled = false;
+              captureButton.disabled = wasCaptureDisabled;
+              playRecordingSavedSound();
+              refreshImages({ selectLatest: true }).catch(() => {});
+              refreshDetails().catch(() => {});
             } catch (error) {
               statusElement.textContent = error instanceof Error ? error.message : "Recording failed";
             } finally {
