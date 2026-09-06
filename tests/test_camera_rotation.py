@@ -188,18 +188,24 @@ class CameraRotationTest(unittest.TestCase):
             settings = camera.capture_settings_from_env(Path.cwd())
 
         self.assertEqual(settings.sharpness, 0.3)
-        self.assertEqual(settings.contrast, 0.85)
-        self.assertEqual(settings.saturation, 0.9)
-        self.assertEqual(settings.exposure_value, -0.3)
+        self.assertIsNone(settings.contrast)
+        self.assertIsNone(settings.saturation)
+        self.assertIsNone(settings.exposure_value)
+        self.assertIsNone(settings.warmup_seconds)
         self.assertEqual(settings.awb_mode, "auto")
         self.assertTrue(settings.awb_lock)
         self.assertEqual(settings.photo_filter, "normal")
 
-    def test_capture_settings_reads_film_source_controls_from_env(self) -> None:
+    def test_capture_settings_ignore_legacy_env_controls_and_use_filter_profile(
+        self,
+    ) -> None:
         with patch.dict(
             "os.environ",
             {
                 "TINY_FILM_CAPTURE_EV": "-0.7",
+                "TINY_FILM_CAPTURE_CONTRAST": "0.1",
+                "TINY_FILM_CAPTURE_SATURATION": "0.2",
+                "TINY_FILM_CAPTURE_WARMUP_SECONDS": "0.1",
                 "TINY_FILM_CAPTURE_BRACKETS": "0,-0.7,-1.0",
                 "TINY_FILM_CAPTURE_BRACKET_SETTLE_SECONDS": "0.4",
                 "TINY_FILM_CAPTURE_AWB_MODE": "cloudy",
@@ -210,12 +216,32 @@ class CameraRotationTest(unittest.TestCase):
         ):
             settings = camera.capture_settings_from_env(Path.cwd())
 
-        self.assertEqual(settings.exposure_value, -0.7)
+        resolved = camera.resolve_photo_capture_settings(settings)
+        self.assertEqual(resolved.contrast, 1.0)
+        self.assertEqual(resolved.saturation, 1.0)
+        self.assertEqual(resolved.exposure_value, 0.0)
+        self.assertEqual(resolved.warmup_seconds, 4.0)
         self.assertEqual(settings.exposure_brackets, (0.0, -0.7, -1.0))
         self.assertEqual(settings.bracket_settle_seconds, 0.4)
         self.assertEqual(settings.awb_mode, "cloudy")
         self.assertTrue(settings.awb_lock)
         self.assertEqual(settings.photo_filter, "cool")
+
+    def test_explicit_capture_controls_override_filter_profile(self) -> None:
+        settings = camera.CaptureSettings(
+            photo_filter="cool",
+            contrast=0.7,
+            saturation=0.8,
+            exposure_value=-1.0,
+            warmup_seconds=0.25,
+        )
+
+        resolved = camera.resolve_photo_capture_settings(settings)
+
+        self.assertEqual(resolved.contrast, 0.7)
+        self.assertEqual(resolved.saturation, 0.8)
+        self.assertEqual(resolved.exposure_value, -1.0)
+        self.assertEqual(resolved.warmup_seconds, 0.25)
 
     def test_bracket_output_paths_include_ev_suffixes(self) -> None:
         settings = camera.CaptureSettings(

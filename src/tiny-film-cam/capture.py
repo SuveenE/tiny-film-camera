@@ -9,14 +9,10 @@ from camera import (
     DEFAULT_AWB_LOCK,
     DEFAULT_AWB_MODE,
     DEFAULT_BRACKET_SETTLE_SECONDS,
-    DEFAULT_CONTRAST,
-    DEFAULT_EXPOSURE_VALUE,
     DEFAULT_FOCUS_MODE,
     DEFAULT_QUALITY,
     DEFAULT_ROTATION,
-    DEFAULT_SATURATION,
     DEFAULT_SHARPNESS,
-    DEFAULT_WARMUP_SECONDS,
     capture_photos,
 )
 from photo_filters import DEFAULT_PHOTO_FILTER, PHOTO_FILTER_NAMES
@@ -46,13 +42,20 @@ def parse_args() -> argparse.Namespace:
         "--quality", type=int, default=DEFAULT_QUALITY, help="JPEG quality, 1-100."
     )
     parser.add_argument("--sharpness", type=float, default=DEFAULT_SHARPNESS)
-    parser.add_argument("--contrast", type=float, default=DEFAULT_CONTRAST)
-    parser.add_argument("--saturation", type=float, default=DEFAULT_SATURATION)
+    parser.add_argument(
+        "--contrast",
+        type=float,
+        help="Override the selected photo filter's contrast.",
+    )
+    parser.add_argument(
+        "--saturation",
+        type=float,
+        help="Override the selected photo filter's saturation.",
+    )
     parser.add_argument(
         "--ev",
         type=float,
-        default=DEFAULT_EXPOSURE_VALUE,
-        help="Exposure compensation in stops, e.g. -0.7 to protect highlights.",
+        help="Override the selected photo filter's exposure compensation.",
     )
     parser.add_argument(
         "--exposure-brackets",
@@ -76,8 +79,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--warmup-seconds",
         type=float,
-        default=DEFAULT_WARMUP_SECONDS,
-        help="Seconds to let exposure/focus settle before capture.",
+        help="Override the selected photo filter's exposure/AWB warmup.",
     )
     parser.add_argument(
         "--focus-mode",

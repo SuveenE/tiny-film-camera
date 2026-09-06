@@ -17,8 +17,7 @@ Run from `/home/suveen/tiny-film`:
 ```bash
 python3 src/tiny-film-cam/capture.py \
   --photo-filter wes_anderson \
-  --contrast 1 --saturation 1 --sharpness 0.3 \
-  --ev 0 --warmup-seconds 4 --rotation 0 \
+  --sharpness 0.3 --rotation 0 \
   --keep-original
 ```
 
@@ -33,10 +32,12 @@ the camera's position during this experiment; the project's normal rotation
 remains 180. Exposure 0 worked for this room; it is not a universal exposure.
 Start there and lower exposure if important highlights clip.
 
-The explicit neutral contrast/saturation settings avoid stacking the existing
-camera's softened look underneath this filter. Warmup lets focus, exposure,
-and auto white balance settle; white balance is then locked for that capture.
-This does not lock gains across separate invocations or changing lighting.
+The selected filter supplies contrast, saturation, EV, and warmup from its
+capture profile in `photo_filters.py`. Cool and both Wes aliases use contrast
+1, saturation 1, EV 0, and a 4-second warmup. Warmup lets focus, exposure, and
+auto white balance settle; white balance is then locked for that capture. This
+does not lock gains across separate invocations or changing lighting. CLI
+options can temporarily override a profile for a controlled experiment.
 
 ## Grade an existing photograph
 
@@ -69,9 +70,9 @@ version 4, so their metadata distinguishes this grade from earlier Cool photos.
 
 After deploying, restart the shutter and web services to load the new filter.
 No switch environment changes are needed. The same LUT also works when `cool`
-is selected through `TINY_FILM_CAPTURE_FILTER`. Capture contrast/saturation 1,
-EV 0, and warmup 4 reproduce the experimental baseline above; exposure and white
-balance still depend on scene lighting.
+is selected through `TINY_FILM_CAPTURE_FILTER`. The four profile controls are
+no longer read from `.env`; exposure and white balance still depend on scene
+lighting.
 
 ## Experiment: 5 September 2026
 
@@ -89,6 +90,10 @@ on the Pi and local workspace; they are intentionally ignored by Git.
   `wes_anderson` v1 filter uses this direction.
 - Full resolution: `full-wes.jpg` plus its `.original.png`; later grading and
   saving with the same JPEG settings produced a byte-identical JPEG.
+- A same-room comparison after dark used identical Cool settings except for
+  warmup. At 0.5 seconds, mean RGB was 171/148/108 and the image was visibly
+  yellow; at 4 seconds it was 156/148/124 with cleaner cream and cyan
+  separation. Cool therefore keeps the 4-second warmup in its filter profile.
 - Three repeated full-resolution LUT runs produced identical pixel SHA-256
   hashes. After removing an unnecessary RGB copy, measured processing was
   6.06 seconds first run, then 2.86 and 2.45 seconds. JPEG encoding took 0.93
