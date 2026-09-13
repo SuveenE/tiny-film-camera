@@ -23,6 +23,27 @@ web = importlib.import_module("web")
 
 
 class PhotoFiltersTest(unittest.TestCase):
+    def test_capture_profiles_are_owned_by_each_filter(self) -> None:
+        normal = photo_filters.photo_filter_capture_profile("normal")
+        black_and_white = photo_filters.photo_filter_capture_profile(
+            "black_and_white"
+        )
+        cool = photo_filters.photo_filter_capture_profile("cool")
+        wes = photo_filters.photo_filter_capture_profile("wes_anderson")
+
+        self.assertEqual(
+            (normal.contrast, normal.saturation, normal.exposure_value,
+             normal.warmup_seconds),
+            (0.85, 0.9, -0.3, 0.5),
+        )
+        self.assertEqual(black_and_white, normal)
+        self.assertEqual(
+            (cool.contrast, cool.saturation, cool.exposure_value,
+             cool.warmup_seconds),
+            (1.0, 1.0, 0.0, 4.0),
+        )
+        self.assertEqual(wes, cool)
+
     def test_normal_filter_keeps_pixels_unchanged(self) -> None:
         image = Image.new("RGB", (1, 1), (80, 100, 120))
 

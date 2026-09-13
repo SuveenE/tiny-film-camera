@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime
 import fcntl
 import os
@@ -15,6 +15,7 @@ from photo_filters import (
     PhotoFilterName,
     apply_photo_filter,
     normalize_photo_filter,
+    photo_filter_capture_profile,
 )
 
 
@@ -89,13 +90,13 @@ class CaptureSettings:
     height: int | None = None
     quality: int = DEFAULT_QUALITY
     sharpness: float = DEFAULT_SHARPNESS
-    contrast: float = DEFAULT_CONTRAST
-    saturation: float = DEFAULT_SATURATION
-    exposure_value: float = DEFAULT_EXPOSURE_VALUE
+    contrast: float | None = None
+    saturation: float | None = None
+    exposure_value: float | None = None
     exposure_brackets: tuple[float, ...] = ()
     bracket_settle_seconds: float = DEFAULT_BRACKET_SETTLE_SECONDS
     rotation: Rotation = DEFAULT_ROTATION
-    warmup_seconds: float = DEFAULT_WARMUP_SECONDS
+    warmup_seconds: float | None = None
     focus_mode: FocusMode = DEFAULT_FOCUS_MODE
     lens_position: float | None = None
     awb_mode: AwbMode = DEFAULT_AWB_MODE
@@ -195,18 +196,12 @@ def capture_settings_from_env(project_root: Path) -> CaptureSettings:
         height=env_optional_int("TINY_FILM_CAPTURE_HEIGHT"),
         quality=env_int("TINY_FILM_CAPTURE_QUALITY", DEFAULT_QUALITY),
         sharpness=env_float("TINY_FILM_CAPTURE_SHARPNESS", DEFAULT_SHARPNESS),
-        contrast=env_float("TINY_FILM_CAPTURE_CONTRAST", DEFAULT_CONTRAST),
-        saturation=env_float("TINY_FILM_CAPTURE_SATURATION", DEFAULT_SATURATION),
-        exposure_value=env_float("TINY_FILM_CAPTURE_EV", DEFAULT_EXPOSURE_VALUE),
         exposure_brackets=env_float_tuple("TINY_FILM_CAPTURE_BRACKETS"),
         bracket_settle_seconds=env_float(
             "TINY_FILM_CAPTURE_BRACKET_SETTLE_SECONDS",
             DEFAULT_BRACKET_SETTLE_SECONDS,
         ),
         rotation=rotation,  # type: ignore[arg-type]
-        warmup_seconds=env_float(
-            "TINY_FILM_CAPTURE_WARMUP_SECONDS", DEFAULT_WARMUP_SECONDS
-        ),
         focus_mode=focus_mode,  # type: ignore[arg-type]
         lens_position=env_optional_float("TINY_FILM_CAPTURE_LENS_POSITION"),
         awb_mode=awb_mode,  # type: ignore[arg-type]
@@ -235,17 +230,42 @@ def video_settings_from_env(project_root: Path) -> VideoSettings:
         duration_seconds=DEFAULT_VIDEO_DURATION_SECONDS,
         bitrate=None,
         sharpness=env_float("TINY_FILM_CAPTURE_SHARPNESS", DEFAULT_SHARPNESS),
-        contrast=env_float("TINY_FILM_CAPTURE_CONTRAST", DEFAULT_CONTRAST),
-        saturation=env_float("TINY_FILM_CAPTURE_SATURATION", DEFAULT_SATURATION),
-        exposure_value=env_float("TINY_FILM_CAPTURE_EV", DEFAULT_EXPOSURE_VALUE),
+        contrast=DEFAULT_CONTRAST,
+        saturation=DEFAULT_SATURATION,
+        exposure_value=DEFAULT_EXPOSURE_VALUE,
         rotation=rotation,  # type: ignore[arg-type]
-        warmup_seconds=env_float(
-            "TINY_FILM_CAPTURE_WARMUP_SECONDS", DEFAULT_WARMUP_SECONDS
-        ),
+        warmup_seconds=DEFAULT_WARMUP_SECONDS,
         focus_mode=focus_mode,  # type: ignore[arg-type]
         lens_position=env_optional_float("TINY_FILM_CAPTURE_LENS_POSITION"),
         awb_mode=awb_mode,  # type: ignore[arg-type]
         awb_lock=env_bool("TINY_FILM_CAPTURE_AWB_LOCK", DEFAULT_AWB_LOCK),
+    )
+
+
+def resolve_photo_capture_settings(settings: CaptureSettings) -> CaptureSettings:
+    """Fill unset sensor controls from the selected filter's capture profile.
+
+    Explicit Python or CLI values remain useful for controlled experiments,
+    while normal web, shutter, and environment-driven captures consistently
+    use the profile selected by the physical filter switch.
+    """
+    profile = photo_filter_capture_profile(settings.photo_filter)
+    return replace(
+        settings,
+        contrast=profile.contrast if settings.contrast is None else settings.contrast,
+        saturation=(
+            profile.saturation if settings.saturation is None else settings.saturation
+        ),
+        exposure_value=(
+            profile.exposure_value
+            if settings.exposure_value is None
+            else settings.exposure_value
+        ),
+        warmup_seconds=(
+            profile.warmup_seconds
+            if settings.warmup_seconds is None
+            else settings.warmup_seconds
+        ),
     )
 
 
@@ -333,6 +353,8 @@ def _image_from_picamera_frame(frame):
 
 
 def _camera_controls(settings: "CaptureSettings | VideoSettings") -> dict[str, object]:
+    if isinstance(settings, CaptureSettings):
+        settings = resolve_photo_capture_settings(settings)
     controls: dict[str, object] = {
         "Sharpness": settings.sharpness,
         "Contrast": settings.contrast,
@@ -441,6 +463,8 @@ def capture_photos(
 ) -> list[Path]:
     """Capture still images, notifying after each frame and before JPEG saving."""
     import time
+
+    settings = resolve_photo_capture_settings(settings)
 
     try:
         __import__("PIL.Image")

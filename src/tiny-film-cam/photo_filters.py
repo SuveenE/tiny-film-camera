@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal, cast
 
@@ -9,6 +10,37 @@ from filter_switch import filter_status_from_cache
 PhotoFilterName = Literal["black_and_white", "normal", "cool", "wes_anderson", "wes_rose"]
 DEFAULT_PHOTO_FILTER: PhotoFilterName = "normal"
 PHOTO_FILTER_NAMES = ("black_and_white", "normal", "cool", "wes_anderson", "wes_rose")
+
+
+@dataclass(frozen=True)
+class PhotoCaptureProfile:
+    """Camera controls that prepare a sensor frame for one photo filter."""
+
+    contrast: float
+    saturation: float
+    exposure_value: float
+    warmup_seconds: float
+
+
+_STANDARD_CAPTURE_PROFILE = PhotoCaptureProfile(
+    contrast=0.85,
+    saturation=0.9,
+    exposure_value=-0.3,
+    warmup_seconds=0.5,
+)
+_WES_CAPTURE_PROFILE = PhotoCaptureProfile(
+    contrast=1.0,
+    saturation=1.0,
+    exposure_value=0.0,
+    warmup_seconds=4.0,
+)
+PHOTO_FILTER_CAPTURE_PROFILES: dict[PhotoFilterName, PhotoCaptureProfile] = {
+    "black_and_white": _STANDARD_CAPTURE_PROFILE,
+    "normal": _STANDARD_CAPTURE_PROFILE,
+    "cool": _WES_CAPTURE_PROFILE,
+    "wes_anderson": _WES_CAPTURE_PROFILE,
+    "wes_rose": _WES_CAPTURE_PROFILE,
+}
 PHOTO_FILTER_DETAILS: dict[PhotoFilterName, dict[str, object]] = {
     "wes_anderson": {
         "id": "wes_anderson",
@@ -46,6 +78,10 @@ def normalize_photo_filter(value: object) -> PhotoFilterName:
 
 def photo_filter_details(name: PhotoFilterName) -> dict[str, object]:
     return dict(PHOTO_FILTER_DETAILS[name])
+
+
+def photo_filter_capture_profile(name: PhotoFilterName) -> PhotoCaptureProfile:
+    return PHOTO_FILTER_CAPTURE_PROFILES[name]
 
 
 def photo_filter_status_from_cache(project_root: Path) -> dict[str, object]:
